@@ -3,14 +3,31 @@ import { supabase } from '@/lib/supabase'
 import BingoGrid from '@/components/BingoGrid'
 import AddCardButton from '@/components/AddCardButton'
 import type { BingoCard } from '@/types'
+import React from 'react'
 
 /**
- * 背景画像は 1500×1062px (元3035×2150の50%縮小)
- * グリッド位置はピクセル計測値をパーセントに変換
+ * 背景画像: 1500×1062px (元3035×2150の50%縮小)
  *
- * 右側グリッド (水/火/自然): left≈47.1%, top≈12%, width≈51%, height≈75.5%
- * 左側グリッド (光/闇):     left≈2.6%,  top≈12%, width≈48.5%, height≈75.5%
+ * 元画像(3035×2150)でのグリッド座標:
+ *   行 (共通):
+ *     Row0: y=365〜665  Row1: y=712〜1012  Row2: y=1059〜1359
+ *     Row3: y=1403〜1703  Row4: y=1740〜2040
+ *   左グリッド (光・闇):
+ *     Col0: x=119〜329  Col1: x=372〜583  ...  Col4: x=1115〜1326
+ *   右グリッド (水・火・自然):
+ *     Col0: x=1638〜1848  Col1: x=1889〜2102  ...  Col4: x=2632〜2845
+ *
+ * パーセント換算 (3035×2150基準):
+ *   左グリッド: left=119/3035=3.924%  top=365/2150=16.977%
+ *              width=1207/3035=39.769%  height=1675/2150=77.907%
+ *   右グリッド: left=1638/3035=53.972%  top=16.977%  width=39.769%  height=77.907%
+ *
+ * CSS gap (%はcontainer幅基準):
+ *   column-gap: 39.25px/1207px = 3.252%
+ *   row-gap:    43.75px×(2150/3035) / (1207×(2150/3035)) → 43.75/1207×(2150/3035比) ≈ 3.625%
+ *   ※ cssのrow-gap%はinline-size(幅)基準なので計算変換済
  */
+
 const CIV_CONFIG: Record<string, {
   bg: string
   layout: 'left' | 'right'
@@ -23,24 +40,23 @@ const CIV_CONFIG: Record<string, {
   闇:  { bg: '/backgrounds/yami.jpg',   layout: 'left',  accent: '#a78bfa' },
 }
 
+// グリッド位置 (画像全体に対する %)
 const GRID_STYLE: Record<'left' | 'right', React.CSSProperties> = {
-  right: {
-    position: 'absolute',
-    left:   '47.1%',
-    top:    '12.0%',
-    width:  '51.0%',
-    height: '75.5%',
-  },
   left: {
     position: 'absolute',
-    left:   '2.6%',
-    top:    '12.0%',
-    width:  '48.5%',
-    height: '75.5%',
+    left:   '3.924%',
+    top:    '16.977%',
+    width:  '39.769%',
+    height: '77.907%',
+  },
+  right: {
+    position: 'absolute',
+    left:   '53.972%',
+    top:    '16.977%',
+    width:  '39.769%',
+    height: '77.907%',
   },
 }
-
-import React from 'react'
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -64,15 +80,16 @@ export default async function CardPage({ params }: PageProps) {
 
   return (
     <main className="min-h-screen bg-black flex flex-col">
-      {/* カード本体 (16:9 landscape 画像に合わせる) */}
-      <div className="w-full relative" style={{ aspectRatio: '1500/1062' }}>
+      {/* カード本体 — 画像アスペクト比 3035:2150 を維持 */}
+      <div className="w-full relative" style={{ aspectRatio: '3035/2150' }}>
 
         {/* 背景テンプレート画像 */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={config.bg}
           alt={`${card.civilization}文明ビンゴカード`}
-          className="absolute inset-0 w-full h-full object-fill"
+          className="absolute inset-0 w-full h-full"
+          style={{ objectFit: 'fill' }}
         />
 
         {/* グリッドオーバーレイ */}

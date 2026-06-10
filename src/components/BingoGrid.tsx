@@ -54,7 +54,8 @@ export default function BingoGrid({ card, accentColor = '#fbbf24' }: BingoGridPr
       )}
 
       {/* 5×5 グリッド (背景画像のセル枠にぴったり重ねる) */}
-      <div className="grid grid-cols-5 w-full h-full" style={{ gap: '1.2%' }}>
+      {/* column-gap: 39.25/1207=3.252%, row-gap: 43.75/1207*(2150/3035)≈3.625% (CSS gap%はcontainer幅基準) */}
+      <div className="grid grid-cols-5 w-full h-full" style={{ columnGap: '3.252%', rowGap: '3.625%' }}>
         {card.cells.map((cellValue, index) => (
           <BingoCell
             key={index}
