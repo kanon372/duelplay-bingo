@@ -8,7 +8,7 @@ import type { Civilization } from '@/types'
 export default function AssignPage() {
   const router = useRouter()
   const params = useParams()
-  const civilization = params.civilization as string
+  const civilization = decodeURIComponent(params.civilization as string)
   const [status, setStatus] = useState<'loading' | 'full' | 'error' | 'sold_out'>('loading')
   const [message, setMessage] = useState('')
 
