@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { getMyCards, canAddCard } from '@/lib/localStorage'
+import { getMyCards, canAddCard, removeCard } from '@/lib/localStorage'
 import type { MyCard } from '@/types'
 import dynamic from 'next/dynamic'
 
@@ -22,8 +22,27 @@ export default function TopPage() {
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
-    setCards(getMyCards())
+    const localCards = getMyCards()
+    setCards(localCards)
     setMounted(true)
+
+    // リセット後に無効になったカードを自動削除
+    if (localCards.length > 0) {
+      fetch('/api/check-cards', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cardIds: localCards.map(c => c.id) }),
+      })
+        .then(r => r.json())
+        .then(({ validIds }: { validIds: number[] }) => {
+          const invalidCards = localCards.filter(c => !validIds.includes(c.id))
+          if (invalidCards.length > 0) {
+            invalidCards.forEach(c => removeCard(c.id))
+            setCards(getMyCards())
+          }
+        })
+        .catch(() => {/* ネットワークエラーは無視 */})
+    }
   }, [])
 
   const canAdd = mounted ? canAddCard() : true

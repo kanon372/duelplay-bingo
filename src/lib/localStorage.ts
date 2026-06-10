@@ -23,6 +23,14 @@ export function canAddCard(): boolean {
   return getMyCards().length < MAX_CARDS
 }
 
+export function removeCard(cardId: number): void {
+  const cards = getMyCards().filter(c => c.id !== cardId)
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(MY_CARDS_KEY, JSON.stringify(cards))
+    localStorage.removeItem(`${STAMPS_PREFIX}${cardId}`)
+  }
+}
+
 export function getStamps(cardId: number): Set<number> {
   if (typeof window === 'undefined') return new Set()
   try {
