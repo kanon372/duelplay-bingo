@@ -36,14 +36,16 @@ export default function BingoCell({
         /* FREEセル: 背景テンプレートの FREE 表示に合わせて透明 */
         <div className="w-full h-full" />
       ) : (
-        /* カード画像 */
-        <Image
-          src={`/cards/${cellValue}.png`}
-          alt={cellValue}
-          fill
-          className="object-cover"
-          sizes="(max-width: 768px) 10vw, 80px"
-        />
+        /* カード画像 — 6px/210px=2.857% はみ出して黒枠を隠す */
+        <div style={{ position: 'absolute', inset: '-2.857%' }}>
+          <Image
+            src={`/cards/${cellValue}.png`}
+            alt={cellValue}
+            fill
+            className="object-cover"
+            sizes="(max-width: 768px) 10vw, 80px"
+          />
+        </div>
       )}
 
       {/* スタンプ */}
