@@ -56,6 +56,7 @@ CREATE OR REPLACE FUNCTION reset_all_cards()
 RETURNS void AS $$
 BEGIN
   UPDATE bingo_cards
-  SET assigned = false, assigned_at = null;
+  SET assigned = false, assigned_at = null
+  WHERE id > 0;
 END;
 $$ LANGUAGE plpgsql;

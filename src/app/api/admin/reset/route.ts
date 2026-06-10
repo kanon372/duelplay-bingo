@@ -17,14 +17,26 @@ export async function POST(request: NextRequest) {
   const supabase = getServiceClient()
 
   if (resetAll === true) {
-    const { error } = await supabase.rpc('reset_all_cards')
-    if (error) return NextResponse.json({ error: 'サーバーエラー' }, { status: 500 })
+    const { error } = await supabase
+      .from('bingo_cards')
+      .update({ assigned: false, assigned_at: null })
+      .gte('id', 0)
+    if (error) {
+      console.error('reset_all error:', error)
+      return NextResponse.json({ error: 'サーバーエラー' }, { status: 500 })
+    }
     return NextResponse.json({ message: '全カードをリセットしました' })
   }
 
   if (typeof cardId === 'number') {
-    const { error } = await supabase.rpc('unassign_bingo_card', { card_id: cardId })
-    if (error) return NextResponse.json({ error: 'サーバーエラー' }, { status: 500 })
+    const { error } = await supabase
+      .from('bingo_cards')
+      .update({ assigned: false, assigned_at: null })
+      .eq('id', cardId)
+    if (error) {
+      console.error('unassign error:', error)
+      return NextResponse.json({ error: 'サーバーエラー' }, { status: 500 })
+    }
     return NextResponse.json({ message: `カード${cardId}を未配布に戻しました` })
   }
 
