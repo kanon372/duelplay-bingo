@@ -4,6 +4,9 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { getMyCards, canAddCard } from '@/lib/localStorage'
 import type { MyCard } from '@/types'
+import dynamic from 'next/dynamic'
+
+const QRScanner = dynamic(() => import('@/components/QRScanner'), { ssr: false })
 
 const CIV_COLOR: Record<string, string> = {
   光: 'border-yellow-500 text-yellow-300',
@@ -15,18 +18,35 @@ const CIV_COLOR: Record<string, string> = {
 
 export default function TopPage() {
   const [cards, setCards] = useState<MyCard[]>([])
+  const [showScanner, setShowScanner] = useState(false)
 
   useEffect(() => { setCards(getMyCards()) }, [])
+
+  const canAdd = canAddCard()
 
   return (
     <main className="min-h-screen bg-gray-900 p-4">
       <div className="max-w-lg mx-auto">
         <h1 className="text-3xl font-black text-white text-center tracking-widest mb-6">BINGO</h1>
+
+        {/* QRスキャンボタン */}
+        {canAdd && (
+          <button
+            onClick={() => setShowScanner(true)}
+            className="w-full mb-6 py-4 rounded-xl font-bold text-lg bg-gradient-to-r from-yellow-500 to-orange-500 text-white shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-2"
+          >
+            <span className="text-2xl">📷</span>
+            QRコードを読み取る
+            <span className="text-sm font-normal opacity-80 ml-1">（残り{3 - cards.length}枚）</span>
+          </button>
+        )}
+
+        {/* カード一覧 */}
         {cards.length === 0 ? (
-          <div className="text-center text-gray-400 mt-16">
+          <div className="text-center text-gray-400 mt-8">
             <div className="text-5xl mb-4">🎯</div>
             <p className="mb-2">まだカードがありません</p>
-            <p className="text-sm">会場のQRコードをスキャンして</p>
+            <p className="text-sm">上のボタンからQRコードをスキャンして</p>
             <p className="text-sm">ビンゴカードをゲットしよう！</p>
           </div>
         ) : (
@@ -44,10 +64,22 @@ export default function TopPage() {
             ))}
           </div>
         )}
-        {canAddCard() && cards.length > 0 && (
-          <p className="text-center text-gray-500 text-sm mt-6">あと{3 - cards.length}枚追加できます</p>
+
+        {/* 上限に達した場合 */}
+        {!canAdd && (
+          <div className="text-center text-gray-500 text-sm mt-6 p-3 border border-gray-700 rounded-lg">
+            🃏 カードは3枚まで取得できます
+          </div>
         )}
       </div>
+
+      {/* QRスキャナーモーダル */}
+      {showScanner && (
+        <QRScanner onClose={() => {
+          setShowScanner(false)
+          setCards(getMyCards())
+        }} />
+      )}
     </main>
   )
 }
