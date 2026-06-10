@@ -11,34 +11,30 @@ interface BingoCellProps {
   onClick: () => void
 }
 
-export default function BingoCell({ cellValue, isStamped, isHighlighted, accentColor = '#fbbf24', onClick }: BingoCellProps) {
+export default function BingoCell({
+  cellValue,
+  isStamped,
+  isHighlighted,
+  accentColor = '#fbbf24',
+  onClick,
+}: BingoCellProps) {
   const isFree = cellValue === 'FREE'
 
   return (
     <div
-      className={`relative aspect-[5/7] cursor-pointer select-none overflow-hidden transition-transform active:scale-95`}
+      className="relative w-full h-full cursor-pointer select-none overflow-hidden active:opacity-80 transition-opacity"
       style={{
-        background: 'rgba(255,255,255,0.88)',
-        border: isHighlighted
-          ? `2px solid ${accentColor}`
-          : '1px solid rgba(255,255,255,0.6)',
-        borderRadius: '3px',
-        boxShadow: isHighlighted
-          ? `0 0 8px ${accentColor}80, inset 0 0 4px ${accentColor}30`
-          : '0 1px 3px rgba(0,0,0,0.3)',
+        // 背景画像のセル枠に合わせて完全透明 (枠線は画像に含まれる)
+        background: 'transparent',
+        outline: isHighlighted ? `2px solid ${accentColor}` : 'none',
+        outlineOffset: '-2px',
+        borderRadius: '1px',
       }}
       onClick={isFree ? undefined : onClick}
     >
       {isFree ? (
-        /* FREEセル */
-        <div className="flex h-full w-full flex-col items-center justify-center">
-          <div
-            className="text-xs font-black tracking-widest"
-            style={{ color: accentColor, textShadow: `0 0 4px ${accentColor}80` }}
-          >
-            FREE
-          </div>
-        </div>
+        /* FREEセル: 背景テンプレートの FREE 表示に合わせて透明 */
+        <div className="w-full h-full" />
       ) : (
         /* カード画像 */
         <Image
@@ -46,28 +42,25 @@ export default function BingoCell({ cellValue, isStamped, isHighlighted, accentC
           alt={cellValue}
           fill
           className="object-cover"
-          sizes="(max-width: 768px) 18vw, 100px"
+          sizes="(max-width: 768px) 10vw, 80px"
         />
       )}
 
-      {/* スタンプオーバーレイ */}
-      {(isStamped && !isFree) && (
+      {/* スタンプ */}
+      {isStamped && !isFree && (
         <div
           className={`absolute inset-0 flex items-center justify-center animate-stamp ${STAMP_CONFIG.color} ${STAMP_CONFIG.size}`}
-          style={{
-            opacity: STAMP_CONFIG.opacity,
-            background: 'rgba(0,0,0,0.1)',
-          }}
+          style={{ opacity: STAMP_CONFIG.opacity }}
         >
           {STAMP_SYMBOLS[STAMP_CONFIG.type]}
         </div>
       )}
 
-      {/* ハイライト時のキラキラ */}
+      {/* ビンゴラインのハイライト */}
       {isHighlighted && (
         <div
           className="absolute inset-0 pointer-events-none"
-          style={{ background: `radial-gradient(circle at center, ${accentColor}20, transparent 70%)` }}
+          style={{ background: `${accentColor}30` }}
         />
       )}
     </div>

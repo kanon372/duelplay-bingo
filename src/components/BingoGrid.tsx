@@ -37,15 +37,15 @@ export default function BingoGrid({ card, accentColor = '#fbbf24' }: BingoGridPr
   const highlightedCells = new Set(bingoLines.flat())
 
   return (
-    <div className="relative w-full">
-      {/* BINGO！フラッシュ */}
+    <div className="relative w-full h-full">
+      {/* BINGO! フラッシュ */}
       {showBingo && (
         <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
           <div
-            className="text-5xl font-black animate-bounce drop-shadow-2xl"
+            className="text-4xl font-black animate-bounce drop-shadow-2xl"
             style={{
               color: '#ffd700',
-              textShadow: '0 0 20px #ffd700, 0 2px 4px rgba(0,0,0,0.8)',
+              textShadow: '0 0 20px #ffd700, 0 2px 4px rgba(0,0,0,0.9)',
             }}
           >
             BINGO!
@@ -53,26 +53,8 @@ export default function BingoGrid({ card, accentColor = '#fbbf24' }: BingoGridPr
         </div>
       )}
 
-      {/* ヘッダー行（B I N G O） */}
-      <div className="grid grid-cols-5 gap-0.5 mb-0.5">
-        {['B','I','N','G','O'].map(letter => (
-          <div
-            key={letter}
-            className="aspect-square flex items-center justify-center font-black text-base rounded-sm"
-            style={{
-              background: 'linear-gradient(135deg, #7c5200, #d4a017, #ffd700)',
-              color: 'white',
-              textShadow: '0 1px 2px rgba(0,0,0,0.6)',
-              border: '1px solid rgba(255,215,0,0.5)',
-            }}
-          >
-            {letter}
-          </div>
-        ))}
-      </div>
-
-      {/* グリッド */}
-      <div className="grid grid-cols-5 gap-0.5">
+      {/* 5×5 グリッド (背景画像のセル枠にぴったり重ねる) */}
+      <div className="grid grid-cols-5 w-full h-full" style={{ gap: '1.2%' }}>
         {card.cells.map((cellValue, index) => (
           <BingoCell
             key={index}
@@ -88,10 +70,14 @@ export default function BingoGrid({ card, accentColor = '#fbbf24' }: BingoGridPr
       {/* ビンゴライン数 */}
       {bingoLines.length > 0 && (
         <div
-          className="mt-2 text-center font-bold text-base"
-          style={{ color: '#ffd700', textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}
+          className="absolute bottom-0 left-0 right-0 text-center font-black text-sm py-0.5"
+          style={{
+            color: '#ffd700',
+            textShadow: '0 1px 3px rgba(0,0,0,0.9)',
+            background: 'rgba(0,0,0,0.4)',
+          }}
         >
-          🎉 {bingoLines.length}ライン ビンゴ！
+          🎉 {bingoLines.length}ライン BINGO！
         </div>
       )}
     </div>
