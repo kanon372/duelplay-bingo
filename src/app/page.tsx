@@ -19,10 +19,14 @@ const CIV_COLOR: Record<string, string> = {
 export default function TopPage() {
   const [cards, setCards] = useState<MyCard[]>([])
   const [showScanner, setShowScanner] = useState(false)
+  const [mounted, setMounted] = useState(false)
 
-  useEffect(() => { setCards(getMyCards()) }, [])
+  useEffect(() => {
+    setCards(getMyCards())
+    setMounted(true)
+  }, [])
 
-  const canAdd = canAddCard()
+  const canAdd = mounted ? canAddCard() : true
 
   return (
     <main className="min-h-screen bg-gray-900 p-4">
