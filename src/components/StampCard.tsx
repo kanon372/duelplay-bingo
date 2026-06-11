@@ -47,9 +47,9 @@ export default function StampCard({ participantNo, onStampUpdate }: StampCardPro
         />
         {/* スタンプオーバーレイ — 各ボックスを絶対位置で配置 */}
         {([
-          { key: 'stamp_ad'     as const, left: '10%',   top: '48.4%' },
-          { key: 'stamp_nd'     as const, left: '40.3%', top: '48.4%' },
-          { key: 'stamp_rental' as const, left: '70.5%', top: '48.4%' },
+          { key: 'stamp_ad'     as const, left: '10.2%',  top: '48.7%' },
+          { key: 'stamp_nd'     as const, left: '40.7%', top: '48.7%' },
+          { key: 'stamp_rental' as const, left: '70.9%', top: '48.7%' },
         ]).map(({ key, left, top }) => (
           <div
             key={key}
