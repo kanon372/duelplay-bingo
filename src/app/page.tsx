@@ -62,6 +62,9 @@ export default function TopPage() {
           const validCards = localCards.filter(c => validIds.includes(c.id))
           if (validCards.length === 0) return
 
+          // すでに参加者番号がある場合は再登録不要
+          if (getParticipantNo()) return
+
           return fetch('/api/participant', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -70,11 +73,8 @@ export default function TopPage() {
         })
         .then((data: { participantNo?: number } | void) => {
           if (data?.participantNo) {
-            const latestNo = getParticipantNo()
-            if (!latestNo || latestNo === data.participantNo) {
-              setParticipantNo(data.participantNo)
-              setParticipantNoState(data.participantNo)
-            }
+            setParticipantNo(data.participantNo)
+            setParticipantNoState(data.participantNo)
           }
         })
         .catch(() => {})

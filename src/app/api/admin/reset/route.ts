@@ -1,9 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-
-function getServiceClient() {
-  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
-}
+import { getServiceClient } from '@/lib/supabase-server'
 
 function checkAdminAuth(request: NextRequest): boolean {
   return request.headers.get('x-admin-password') === process.env.ADMIN_PASSWORD
@@ -21,7 +17,7 @@ export async function POST(request: NextRequest) {
     await supabase.from('participant_stamps').delete().gte('id', 0)
     await supabase.from('stamp_cards').delete().gte('id', 0)
     await supabase.from('participants').delete().gte('id', 0)
-    await supabase.rpc('reset_participant_sequence')
+    await supabase.rpc('reset_participant_sequence').maybeSingle()
     return NextResponse.json({ message: 'スタンプ・参加者データをリセットしました' })
   }
 
@@ -38,7 +34,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: '全カードをリセットしました' })
   }
 
-  if (typeof cardId === 'number') {
+  if (typeof cardId === 'number' && !isNaN(cardId)) {
     const { error } = await supabase
       .from('bingo_cards')
       .update({ assigned: false, assigned_at: null })

@@ -31,6 +31,9 @@ export default function QRScanner({ onClose }: QRScannerProps) {
 
     const start = async () => {
       try {
+        // jsqrをカメラ起動前に1回だけロード（毎フレームimportしない）
+        const { default: jsQR } = await import('jsqr')
+
         const stream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: 'environment' },
           audio: false,
@@ -41,18 +44,18 @@ export default function QRScanner({ onClose }: QRScannerProps) {
           videoRef.current.srcObject = stream
           await videoRef.current.play()
         }
-        scan()
+        scan(jsQR)
       } catch {
         setError('カメラを起動できませんでした。\nカメラへのアクセスを許可してください。')
       }
     }
 
-    const scan = async () => {
+    const scan = (jsQR: (data: Uint8ClampedArray, width: number, height: number) => { data: string } | null) => {
       if (!active || !videoRef.current || !canvasRef.current) return
       const video = videoRef.current
       const canvas = canvasRef.current
       if (video.readyState !== video.HAVE_ENOUGH_DATA) {
-        animFrameRef.current = requestAnimationFrame(scan)
+        animFrameRef.current = requestAnimationFrame(() => scan(jsQR))
         return
       }
       canvas.width = video.videoWidth
@@ -62,8 +65,6 @@ export default function QRScanner({ onClose }: QRScannerProps) {
       ctx.drawImage(video, 0, 0)
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
 
-      // jsqrを動的インポート
-      const jsQR = (await import('jsqr')).default
       const code = jsQR(imageData.data, imageData.width, imageData.height)
 
       if (code) {
@@ -82,7 +83,7 @@ export default function QRScanner({ onClose }: QRScannerProps) {
         } catch { /* not a URL */ }
       }
 
-      animFrameRef.current = requestAnimationFrame(scan)
+      animFrameRef.current = requestAnimationFrame(() => scan(jsQR))
     }
 
     start()

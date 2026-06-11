@@ -66,12 +66,14 @@ export default function AdminPage() {
   }
 
   const toggleStamp = async (stamp: string, current: boolean) => {
+    const pNo = parseInt(stampParticipantNo, 10)
+    if (isNaN(pNo) || pNo <= 0) { setStampMessage('有効な参加者番号を入力してください'); return }
     setStampLoading(true)
     setStampMessage('')
     const res = await fetch('/api/admin/stamp', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-admin-password': password },
-      body: JSON.stringify({ participantNo: parseInt(stampParticipantNo), stamp, value: !current }),
+      body: JSON.stringify({ participantNo: pNo, stamp, value: !current }),
     })
     const data = await res.json()
     if (data.success) {
@@ -116,6 +118,10 @@ export default function AdminPage() {
   }
 
   const handleReset = async (cardId?: number) => {
+    if (cardId !== undefined && (isNaN(cardId) || cardId <= 0)) {
+      setMessage('有効なカード番号を入力してください')
+      return
+    }
     const body = cardId ? { cardId } : { resetAll: true }
     if (!confirm(cardId ? `カード${cardId}を未配布に戻しますか？` : '全カードをリセットしますか？')) return
     const res = await fetch('/api/admin/reset', {
