@@ -38,7 +38,7 @@ export default function StampCard({ participantNo, onStampUpdate }: StampCardPro
   return (
     <div className="mb-4 rounded-xl overflow-hidden border border-gray-700">
       {/* スタンプカード画像 */}
-      <div className="relative w-full" style={{ aspectRatio: '540/240' }}>
+      <div className="relative w-full" style={{ aspectRatio: '538/325' }}>
         <Image
           src="/stamp-card.png"
           alt="スタンプカード"
