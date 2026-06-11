@@ -2,8 +2,20 @@ import type { MyCard } from '@/types'
 
 const MY_CARDS_KEY = 'bingo_my_cards'
 const STAMPS_PREFIX = 'bingo_stamps_'
+const PARTICIPANT_NO_KEY = 'bingo_participant_no'
 const MAX_CARDS = 3
 const FREE_INDEX = 12
+
+export function getParticipantNo(): number | null {
+  if (typeof window === 'undefined') return null
+  const v = localStorage.getItem(PARTICIPANT_NO_KEY)
+  return v ? Number(v) : null
+}
+
+export function setParticipantNo(no: number): void {
+  if (typeof window === 'undefined') return
+  localStorage.setItem(PARTICIPANT_NO_KEY, String(no))
+}
 
 export function getMyCards(): MyCard[] {
   if (typeof window === 'undefined') return []

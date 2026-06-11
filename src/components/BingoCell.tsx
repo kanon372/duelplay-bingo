@@ -1,13 +1,14 @@
 'use client'
 
 import Image from 'next/image'
-import { STAMP_CONFIG, STAMP_SYMBOLS } from '@/config/stamp'
+import { STAMP_IMAGES, STAMP_FALLBACK, STAMP_FALLBACK_COLOR } from '@/config/stamp'
 
 interface BingoCellProps {
   cellValue: string
   isStamped: boolean
   isHighlighted: boolean
   accentColor?: string
+  colIndex: number   // 0〜4 (列番号)
   onClick: () => void
 }
 
@@ -16,9 +17,11 @@ export default function BingoCell({
   isStamped,
   isHighlighted,
   accentColor = '#fbbf24',
+  colIndex,
   onClick,
 }: BingoCellProps) {
   const isFree = cellValue === 'FREE'
+  const stampImage = STAMP_IMAGES[colIndex]
 
   return (
     <div
@@ -27,7 +30,6 @@ export default function BingoCell({
         background: 'transparent',
         outline: isHighlighted ? `2px solid ${accentColor}` : 'none',
         outlineOffset: '-2px',
-        // overflow: visible にしてbleedを許可
         overflow: 'visible',
       }}
       onClick={isFree ? undefined : onClick}
@@ -37,14 +39,13 @@ export default function BingoCell({
         <div className="w-full h-full" />
       ) : (
         /*
-         * カード画像 — 6px/210px=2.857% はみ出して黒枠を隠す
+         * カード画像 — 4% はみ出して黒枠を隠す
          * object-contain でカード全体を表示（切れを防ぐ）
-         * inset: -2.857% で四辺をはみ出させる
          */
         <div
           style={{
             position: 'absolute',
-            inset: '-2.857%',
+            inset: '-4%',
             overflow: 'hidden',
           }}
         >
@@ -58,13 +59,27 @@ export default function BingoCell({
         </div>
       )}
 
-      {/* スタンプ (セル範囲のみ) */}
+      {/* スタンプ */}
       {isStamped && !isFree && (
         <div
-          className={`absolute inset-0 flex items-center justify-center animate-stamp ${STAMP_CONFIG.color} ${STAMP_CONFIG.size}`}
-          style={{ opacity: STAMP_CONFIG.opacity, zIndex: 10 }}
+          className="absolute inset-0 flex items-center justify-center"
+          style={{ zIndex: 10 }}
         >
-          {STAMP_SYMBOLS[STAMP_CONFIG.type]}
+          {stampImage ? (
+            <div style={{ position: 'absolute', inset: '0%' }}>
+              <Image
+                src={stampImage}
+                alt="stamp"
+                fill
+                className="object-contain"
+                sizes="(max-width: 768px) 10vw, 80px"
+              />
+            </div>
+          ) : (
+            <span className={`text-4xl font-black ${STAMP_FALLBACK_COLOR}`} style={{ opacity: 0.9 }}>
+              {STAMP_FALLBACK}
+            </span>
+          )}
         </div>
       )}
 

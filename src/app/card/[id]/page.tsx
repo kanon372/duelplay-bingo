@@ -81,7 +81,7 @@ export default async function CardPage({ params }: PageProps) {
   return (
     <main className="min-h-screen bg-black flex flex-col">
       {/* カード本体 — 画像アスペクト比 3035:2150 を維持 */}
-      <div className="w-full relative" style={{ aspectRatio: '3035/2150' }}>
+      <div className="w-full relative" style={{ aspectRatio: '3035/2150', overflow: 'hidden' }}>
 
         {/* 背景テンプレート画像 */}
         {/* eslint-disable-next-line @next/next/no-img-element */}

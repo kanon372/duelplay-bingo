@@ -13,9 +13,19 @@ export async function POST(request: NextRequest) {
   if (!checkAdminAuth(request)) return NextResponse.json({ error: '認証失敗' }, { status: 401 })
 
   const body = await request.json()
-  const { cardId, resetAll } = body
+  const { cardId, resetAll, resetStamps } = body
   const supabase = getServiceClient()
 
+  // スタンプ・参加者のみリセット（カードはそのまま）
+  if (resetStamps === true) {
+    await supabase.from('participant_stamps').delete().gte('id', 0)
+    await supabase.from('stamp_cards').delete().gte('id', 0)
+    await supabase.from('participants').delete().gte('id', 0)
+    await supabase.rpc('reset_participant_sequence')
+    return NextResponse.json({ message: 'スタンプ・参加者データをリセットしました' })
+  }
+
+  // カードのみリセット（スタンプ・参加者はそのまま）
   if (resetAll === true) {
     const { error } = await supabase
       .from('bingo_cards')

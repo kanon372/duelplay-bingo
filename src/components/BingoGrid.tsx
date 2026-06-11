@@ -53,19 +53,52 @@ export default function BingoGrid({ card, accentColor = '#fbbf24' }: BingoGridPr
         </div>
       )}
 
-      {/* 5×5 グリッド (背景画像のセル枠にぴったり重ねる) */}
-      {/* column-gap: 39.25/1207=3.252%, row-gap: 43.75/1207*(2150/3035)≈3.625% (CSS gap%はcontainer幅基準) */}
-      <div className="grid grid-cols-5 w-full h-full" style={{ columnGap: '3.252%', rowGap: '3.625%', overflow: 'visible' }}>
-        {card.cells.map((cellValue, index) => (
-          <BingoCell
-            key={index}
-            cellValue={cellValue}
-            isStamped={index === 12 || stamped.has(index)}
-            isHighlighted={highlightedCells.has(index)}
-            accentColor={accentColor}
-            onClick={() => handleCellClick(index)}
-          />
-        ))}
+      {/*
+       * 5×5 グリッド — 背景画像のセル枠に正確に重ねる
+       *
+       * 実測値 (元画像 3035×2150):
+       *   行ギャップ (px): 47 / 47 / 44 / 37  ← 不均一なため grid-template で個別指定
+       *   列ギャップ (px): 43 / 37 / 38 / 35  (左右平均)
+       *   セル高さ: 300px / コンテナ高 1675px
+       *   セル幅: 210(col0) + 211-213(col1-4) / コンテナ幅 1207px
+       *
+       * grid-template-rows % = px / 1675 (コンテナ高基準)
+       * grid-template-columns % = px / 1207 (コンテナ幅基準)
+       * gap行/列を挿入し、セルを奇数トラックに配置
+       */}
+      <div
+        className="w-full h-full"
+        style={{
+          display: 'grid',
+          // 9列: col0 gap col1 gap col2 gap col3 gap col4
+          gridTemplateColumns: '17.398% 3.562% 17.481% 3.066% 17.481% 3.149% 17.481% 2.900% 17.481%',
+          // 9行: row0 gap row1 gap row2 gap row3 gap row4
+          gridTemplateRows: '17.910% 2.806% 17.910% 2.806% 17.910% 2.627% 17.910% 2.209% 17.910%',
+        }}
+      >
+        {card.cells.map((cellValue, index) => {
+          const r = Math.floor(index / 5)
+          const c = index % 5
+          return (
+            <div
+              key={index}
+              style={{
+                gridRow: 2 * r + 1,
+                gridColumn: 2 * c + 1,
+                position: 'relative',
+              }}
+            >
+              <BingoCell
+                cellValue={cellValue}
+                isStamped={index === 12 || stamped.has(index)}
+                isHighlighted={highlightedCells.has(index)}
+                accentColor={accentColor}
+                colIndex={c}
+                onClick={() => handleCellClick(index)}
+              />
+            </div>
+          )
+        })}
       </div>
 
       {/* ビンゴライン数 */}

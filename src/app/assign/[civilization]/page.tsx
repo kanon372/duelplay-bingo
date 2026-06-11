@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { addMyCard, canAddCard } from '@/lib/localStorage'
+import { addMyCard, canAddCard, getMyCards, getParticipantNo, setParticipantNo } from '@/lib/localStorage'
 import type { Civilization } from '@/types'
 
 export default function AssignPage() {
@@ -25,7 +25,24 @@ export default function AssignPage() {
         if (res.status === 409) { setStatus('sold_out'); return }
         if (!res.ok) { setStatus('error'); setMessage('エラーが発生しました。スタッフにお声がけください。'); return }
         const { card } = await res.json()
+        const isFirstCard = getMyCards().length === 0
         addMyCard({ id: card.id, civilization: card.civilization as Civilization })
+
+        // 初回カード取得時に参加者番号を登録（カードリセット後も番号を引き継ぐ）
+        if (isFirstCard) {
+          try {
+            const existingParticipantNo = getParticipantNo()
+            const pRes = await fetch('/api/participant', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ cardId: card.id, existingParticipantNo }),
+            })
+            const pData = await pRes.json()
+            if (pData.error) console.error('参加者登録エラー:', pData.error)
+            if (pData.participantNo) setParticipantNo(pData.participantNo)
+          } catch (e) { console.error('参加者番号取得失敗:', e) }
+        }
+
         router.replace(`/card/${card.id}`)
       } catch {
         setStatus('error')
