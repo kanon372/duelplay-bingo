@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>デュエルマスターズ ビンゴ アプリ 使い方マニュアル</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Hiragino Sans', 'Yu Gothic', sans-serif; font-size: 13px; color: #1a1a1a; background: white; }
+
+  .page { width: 210mm; min-height: 297mm; padding: 18mm 20mm; margin: 0 auto; }
+
+  @media print {
+    .page { margin: 0; padding: 15mm 18mm; page-break-after: always; }
+    .page:last-child { page-break-after: auto; }
+    @page { size: A4; margin: 0; }
+    table { page-break-inside: avoid; }
+    h2 { page-break-after: avoid; }
+    h3 { page-break-after: avoid; }
+    .step { page-break-inside: avoid; }
+    .box { page-break-inside: avoid; }
+    .two-col { page-break-inside: avoid; }
+    .warn { page-break-inside: avoid; }
+    .tip { page-break-inside: avoid; }
+  }
+
+  h1 { font-size: 22px; font-weight: 900; color: #1a1a6e; border-bottom: 4px solid #1a1a6e; padding-bottom: 8px; margin-bottom: 6px; }
+  h2 { font-size: 16px; font-weight: 800; color: white; background: #1a1a6e; padding: 6px 12px; border-radius: 6px; margin: 18px 0 10px; }
+  h3 { font-size: 13px; font-weight: 700; color: #1a1a6e; border-left: 4px solid #1a1a6e; padding-left: 8px; margin: 12px 0 6px; }
+  p { line-height: 1.7; margin-bottom: 6px; }
+  ul, ol { padding-left: 20px; line-height: 1.8; }
+  li { margin-bottom: 3px; }
+
+  .subtitle { color: #555; font-size: 12px; margin-bottom: 20px; }
+
+  .box { border: 2px solid #ddd; border-radius: 8px; padding: 12px 16px; margin: 10px 0; }
+  .box-blue { border-color: #3b82f6; background: #eff6ff; }
+  .box-green { border-color: #22c55e; background: #f0fdf4; }
+  .box-orange { border-color: #f97316; background: #fff7ed; }
+  .box-yellow { border-color: #eab308; background: #fefce8; }
+
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 99px; font-size: 11px; font-weight: 700; }
+  .badge-green { background: #22c55e; color: white; }
+  .badge-orange { background: #f97316; color: white; }
+  .badge-red { background: #ef4444; color: white; }
+
+  table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+  th { background: #1a1a6e; color: white; padding: 8px 12px; text-align: left; font-size: 12px; }
+  td { padding: 7px 12px; border-bottom: 1px solid #e5e7eb; font-size: 12px; }
+  tr:nth-child(even) td { background: #f9fafb; }
+
+  .step { display: flex; gap: 12px; margin: 8px 0; align-items: flex-start; }
+  .step-num { min-width: 26px; height: 26px; background: #1a1a6e; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; flex-shrink: 0; margin-top: 2px; }
+  .step-content { flex: 1; }
+  .step-content strong { display: block; margin-bottom: 2px; }
+
+  .flow { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin: 10px 0; }
+  .flow-item { background: #1a1a6e; color: white; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 700; line-height: 1.4; text-align: center; }
+  .flow-arrow { color: #888; font-size: 18px; }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 10px 0; }
+
+  .warn { background: #fef9c3; border: 1px solid #fbbf24; border-radius: 6px; padding: 8px 12px; font-size: 12px; margin: 8px 0; }
+  .warn::before { content: "⚠️ "; }
+
+  .tip { background: #ecfdf5; border: 1px solid #6ee7b7; border-radius: 6px; padding: 8px 12px; font-size: 12px; margin: 8px 0; }
+  .tip::before { content: "💡 "; }
+
+  hr.dashed { border: none; border-top: 2px dashed #ddd; margin: 16px 0; }
+
+  .footer { margin-top: 30px; text-align: center; color: #aaa; font-size: 11px; border-top: 1px solid #eee; padding-top: 12px; }
+  .screen { width: 100%; border: 1px solid #ddd; border-radius: 8px; margin: 10px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1); page-break-inside: avoid; }
+  .screen-wrap { text-align: center; margin: 12px 0; page-break-inside: avoid; }
+  .screen-caption { font-size: 11px; color: #555; text-align: center; margin-top: 4px; font-style: italic; }
+</style>
+</head>
+<body>
+
+<!-- ページ1: 概要・お客様向け -->
+<div class="page">
+  <h1>デュエルマスターズ ビンゴ<br>アプリ 使い方マニュアル</h1>
+  <p class="subtitle">KIC × デュエルマスターズ Play イベント用 / 2026年版</p>
+
+  <h2>📋 アプリの概要</h2>
+  <p>このアプリは、イベント参加者がQRコードをスキャンして<strong>ビンゴカード</strong>を取得し、スタンプを集めながらビンゴを楽しめるWebアプリです。スマートフォンのブラウザから利用でき、インストール不要です。</p>
+
+  <div class="two-col" style="margin-top:12px">
+    <div class="box box-blue">
+      <strong>👤 参加者（お客様）</strong>
+      <ul style="margin-top:6px">
+        <li>QRスキャンでカードを取得</li>
+        <li>最大3枚まで取得可能</li>
+        <li>スタンプを集めて2・3枚目を解放</li>
+        <li>ビンゴを目指す</li>
+      </ul>
+    </div>
+    <div class="box box-orange">
+      <strong>🔧 スタッフ（管理者）</strong>
+      <ul style="margin-top:6px">
+        <li>管理画面で配布状況を確認</li>
+        <li>参加者一覧を管理</li>
+        <li>スタンプを付与</li>
+        <li>カード・スタンプのリセット</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="screen-wrap">
+    <img src="screen-top-small.jpg" class="screen" style="max-height:180px;width:auto;">
+    <p class="screen-caption">▲ お客様トップ画面（カード未取得時）</p>
+  </div>
+
+  <h2>🎯 お客様向け：カードの取得方法</h2>
+  <div class="step">
+    <div class="step-num">1</div>
+    <div class="step-content">
+      <strong>スタッフからQRコードを受け取る</strong>
+      イベント会場でスタッフが提示するQRコードをスキャンします。
+    </div>
+  </div>
+  <div class="step">
+    <div class="step-num">2</div>
+    <div class="step-content">
+      <strong>「QRコードを読み取る」ボタンをタップ</strong>
+      トップ画面のオレンジ色のボタンをタップしてカメラを起動します。
+    </div>
+  </div>
+  <div class="step">
+    <div class="step-num">3</div>
+    <div class="step-content">
+      <strong>文明カードが自動で割り当てられる</strong>
+      光・水・火・自然・闇のいずれかの文明カードが配布されます。
+    </div>
+  </div>
+  <div class="step">
+    <div class="step-num">4</div>
+    <div class="step-content">
+      <strong>参加者番号が発行される</strong>
+      初回取得時に参加者番号（#1, #2…）が自動で割り当てられます。
+    </div>
+  </div>
+
+  <h2>🏆 カード取得枚数とスタンプ条件</h2>
+  <table>
+    <tr><th>枚目</th><th>取得条件</th><th>説明</th></tr>
+    <tr><td>1枚目</td><td>条件なし</td><td>イベント参加でもらえます</td></tr>
+    <tr><td>2枚目</td><td>スタンプ2個以上</td><td>オールディビジョン・ニュー ディビジョン・レンタルのうち2か所でスタンプ取得後</td></tr>
+    <tr><td>3枚目</td><td>スタンプ3個すべて</td><td>3か所すべてでスタンプ取得後</td></tr>
+  </table>
+
+  <div class="box box-yellow" style="margin-top:12px">
+    <strong>🎪 スタンプの取得場所（3か所）</strong>
+    <ul style="margin-top:6px">
+      <li><strong>オールディビジョン（AD）</strong>：オールディビジョン対戦コーナーで取得</li>
+      <li><strong>ニュー ディビジョン（ND）</strong>：ニュー ディビジョン対戦コーナーで取得</li>
+      <li><strong>レンタル（Rental）</strong>：レンタルデッキコーナーで取得</li>
+    </ul>
+  </div>
+
+  <div class="footer">KIC × デュエルマスターズ Play イベント用ビンゴアプリ &nbsp;|&nbsp; 1 / 4</div>
+</div>
+
+<!-- ページ2: スタッフ向け管理画面 -->
+<div class="page">
+  <h1>スタッフ向け：管理画面マニュアル</h1>
+  <p class="subtitle">管理画面URL: <strong>https://[アプリURL]/admin</strong></p>
+
+  <div class="screen-wrap">
+    <img src="screen-admin-small.jpg" class="screen" style="max-height:200px;width:auto;">
+    <p class="screen-caption">▲ 管理画面（配布状況・スタンプ管理・参加者一覧）</p>
+  </div>
+
+  <h2>📊 管理画面の構成</h2>
+  <h3>① 配布状況</h3>
+  <p>5文明（光・水・火・自然・闇）ごとの残り枚数・配布済み枚数をリアルタイムで確認できます。</p>
+  <h3>② 今すぐ更新ボタン</h3>
+  <p>配布状況と参加者一覧を最新の情報に更新します。自動更新はされないため、確認したいときにタップしてください。</p>
+  <h3>③ カード単体を未配布に戻す</h3>
+  <p>カード番号を入力して「戻す」ボタンを押すと、そのカード1枚だけ未配布状態に戻せます。お客様のスタンプ情報は保持されます。</p>
+  <h3>④ 配布済みカード一覧</h3>
+  <p>現在配布中の全カードを文明・番号付きで一覧表示します。</p>
+  <h3>⑤ 参加者一覧</h3>
+  <p>参加者番号・カードID・スタンプ所持数を一覧で確認できます。</p>
+
+  <h2>🕹️ スタンプの付与方法</h2>
+  <div class="step">
+    <div class="step-num">1</div>
+    <div class="step-content">
+      <strong>お客様の参加者番号を確認する</strong>
+      お客様のスマホ トップ画面に「参加者番号 #〇〇」と表示されています。
+    </div>
+  </div>
+  <div class="step">
+    <div class="step-num">2</div>
+    <div class="step-content">
+      <strong>管理画面で参加者番号を入力し、スタンプ種別を選択</strong>
+      オールディビジョン・ニュー ディビジョン・レンタルのいずれかを選択して「スタンプを付与」ボタンを押します。
+    </div>
+  </div>
+  <div class="step">
+    <div class="step-num">3</div>
+    <div class="step-content">
+      <strong>お客様のスマホに反映される</strong>
+      お客様が「スタンプを更新」ボタンを押すとスタンプカードに反映されます。
+    </div>
+  </div>
+
+  <h2>🔄 リセット操作</h2>
+  <div class="warn">リセット操作は取り消せません。実施前に必ず確認してください。</div>
+  <table>
+    <tr><th>ボタン</th><th>リセットされる内容</th><th>保持される内容</th></tr>
+    <tr>
+      <td>🗑️ スタンプ・参加者をリセット</td>
+      <td>スタンプデータ、参加者データ、参加者番号の連番</td>
+      <td>カード配布状況</td>
+    </tr>
+    <tr>
+      <td>⚠️ 全カードをリセット</td>
+      <td>全カードの配布状況（未配布に戻る）</td>
+      <td>スタンプデータ、参加者データ</td>
+    </tr>
+  </table>
+  <div class="tip">イベント終了後は「全カードをリセット」→ 次のイベント直前に「スタンプ・参加者をリセット」の順で実行してください。</div>
+
+  <h2>❓ よくあるトラブル対応</h2>
+  <table>
+    <tr><th>症状</th><th>対処法</th></tr>
+    <tr><td>QRを読んでも反応しない</td><td>ブラウザのカメラ許可をONにする。iOSはSafariを使用</td></tr>
+    <tr><td>カードが表示されない</td><td>ブラウザのキャッシュをクリアして再読み込み</td></tr>
+    <tr><td>2枚目のQRが読み取れない</td><td>スタンプが2個以上あるか確認。不足時はスタンプ付与が必要</td></tr>
+    <tr><td>管理画面に参加者が表示されない</td><td>「今すぐ更新」ボタンを押して再読み込み</td></tr>
+  </table>
+
+  <div class="footer">KIC × デュエルマスターズ Play イベント用ビンゴアプリ &nbsp;|&nbsp; 2 / 4</div>
+</div>
+
+<!-- ページ3: イベント運営フロー -->
+<div class="page">
+  <h1>イベント運営フロー</h1>
+
+  <h2>🚀 イベント開始前の準備</h2>
+  <div class="step">
+    <div class="step-num">1</div>
+    <div class="step-content"><strong>管理画面でカードがリセットされていることを確認</strong><br>全文明の「配布 0」になっていればOK</div>
+  </div>
+  <div class="step">
+    <div class="step-num">2</div>
+    <div class="step-content"><strong>各文明のQRコードを印刷・準備</strong><br>光・水・火・自然・闇の5種類のQRコードを用意</div>
+  </div>
+  <div class="step">
+    <div class="step-num">3</div>
+    <div class="step-content"><strong>スタンプ付与担当スタッフに管理画面URLを共有</strong><br>各ブース（オールディビジョン・ニュー ディビジョン・レンタル）のスタッフが操作できるよう準備</div>
+  </div>
+
+  <h2>🎪 イベント中の運営フロー</h2>
+  <div class="flow">
+    <div class="flow-item">お客様来場</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-item">QRスキャン<br>1枚目取得</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-item">各ブースで<br>対戦・体験</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-item">スタンプ付与<br>（スタッフ操作）</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-item">2・3枚目<br>QRスキャン</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-item">ビンゴ</div>
+  </div>
+
+  <div class="two-col" style="margin-top:14px">
+    <div class="box box-green">
+      <strong>✅ スタンプ付与のタイミング</strong>
+      <ul style="margin-top:6px">
+        <li>オールディビジョンブース：対戦後</li>
+        <li>ニュー ディビジョンブース：対戦後</li>
+        <li>レンタルブース：レンタルデッキ利用後</li>
+      </ul>
+      <p style="margin-top:8px;font-size:11px">※付与前に必ずお客様の参加者番号を確認</p>
+    </div>
+    <div class="box box-blue">
+      <strong>📱 お客様への案内ポイント</strong>
+      <ul style="margin-top:6px">
+        <li>iOSはSafariでの利用を推奨</li>
+        <li>カメラ許可が必要</li>
+        <li>参加者番号を覚えてもらう</li>
+        <li>スタンプ更新は手動ボタンで</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2>🏁 イベント終了後</h2>
+  <div class="step">
+    <div class="step-num">1</div>
+    <div class="step-content"><strong>管理画面で最終の参加者数・配布枚数を記録</strong></div>
+  </div>
+  <div class="step">
+    <div class="step-num">2</div>
+    <div class="step-content"><strong>「全カードをリセット」を実行</strong><br>カードの配布状況をリセット（スタンプは保持）</div>
+  </div>
+  <div class="step">
+    <div class="step-num">3</div>
+    <div class="step-content"><strong>次のイベント直前に「スタンプ・参加者をリセット」を実行</strong><br>参加者番号が #1 からスタートし直す</div>
+  </div>
+
+  <div class="footer">KIC × デュエルマスターズ Play イベント用ビンゴアプリ &nbsp;|&nbsp; 3 / 4</div>
+</div>
+
+<!-- ページ4: 対応環境 -->
+<div class="page">
+  <h1>対応環境・動作確認済みバージョン</h1>
+
+  <h2>🍎 iPhone / iPad（iOS）</h2>
+  <table>
+    <tr><th>iOSバージョン</th><th>ブラウザ</th><th>動作</th><th>備考</th></tr>
+    <tr><td>iOS 16 以上</td><td>Safari</td><td><span class="badge badge-green">◎ 推奨</span></td><td>すべての機能が安定動作</td></tr>
+    <tr><td>iOS 15.4〜15.x</td><td>Safari</td><td><span class="badge badge-green">○ 動作</span></td><td>基本動作OK</td></tr>
+    <tr><td>iOS 15.0〜15.3</td><td>Safari</td><td><span class="badge badge-orange">△ 一部制限</span></td><td>互換パッチ適用済み・動作するが推奨しない</td></tr>
+    <tr><td>iOS 14.3〜14.x</td><td>Safari</td><td><span class="badge badge-orange">△ 動作未保証</span></td><td>カメラAPIが不安定な場合あり</td></tr>
+    <tr><td>iOS 14.2 以下</td><td>Safari</td><td><span class="badge badge-red">✕ 非対応</span></td><td>カメラAPI未対応</td></tr>
+    <tr><td>全バージョン</td><td>Chrome / Firefox</td><td><span class="badge badge-red">✕ 非対応</span></td><td>iOSではSafari以外カメラ使用不可</td></tr>
+  </table>
+  <div class="tip">iOSのバージョン確認：「設定 → 一般 → 情報 → iOSバージョン」</div>
+
+  <h2>🤖 Android</h2>
+  <table>
+    <tr><th>Androidバージョン</th><th>ブラウザ</th><th>動作</th><th>備考</th></tr>
+    <tr><td>Android 10 以上</td><td>Chrome 最新版</td><td><span class="badge badge-green">◎ 推奨</span></td><td>すべての機能が安定動作</td></tr>
+    <tr><td>Android 9</td><td>Chrome 88以上</td><td><span class="badge badge-green">○ 動作</span></td><td>基本動作OK</td></tr>
+    <tr><td>Android 8.0〜8.1</td><td>Chrome 88以上</td><td><span class="badge badge-orange">△ 動作未保証</span></td><td>端末依存あり</td></tr>
+    <tr><td>Android 7 以下</td><td>—</td><td><span class="badge badge-red">✕ 非対応</span></td><td>モダンJS未対応</td></tr>
+    <tr><td>全バージョン</td><td>Samsung Internet / Firefox</td><td><span class="badge badge-green">○ 基本動作</span></td><td>動作するが確認は限定的</td></tr>
+  </table>
+
+  <h2>💻 PC・タブレット（スタッフ用管理画面向け）</h2>
+  <table>
+    <tr><th>OS / ブラウザ</th><th>動作</th><th>備考</th></tr>
+    <tr><td>Windows：Chrome 88以上</td><td><span class="badge badge-green">◎ 推奨</span></td><td>管理画面の操作に最適</td></tr>
+    <tr><td>Windows：Edge 88以上</td><td><span class="badge badge-green">◎ 推奨</span></td><td>Chromiumベースで安定</td></tr>
+    <tr><td>Mac：Safari 14以上</td><td><span class="badge badge-green">○ 動作</span></td><td>QRスキャンも可能</td></tr>
+    <tr><td>Mac：Chrome 最新版</td><td><span class="badge badge-green">○ 動作</span></td><td>管理画面に最適</td></tr>
+    <tr><td>Internet Explorer（IE）</td><td><span class="badge badge-red">✕ 非対応</span></td><td>使用不可</td></tr>
+  </table>
+
+  <div class="warn">iOSでQRスキャンが動かない場合はSafariで開き直してください。Chrome・Firefoxなど他のブラウザではiOSのカメラAPIが使用できません。</div>
+
+  <div class="footer">KIC × デュエルマスターズ Play イベント用ビンゴアプリ &nbsp;|&nbsp; 4 / 4</div>
+</div>
+
+</body>
+</html>

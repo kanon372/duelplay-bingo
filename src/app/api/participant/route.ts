@@ -1,12 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-
-function getServiceClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
-}
+import { getServiceClient } from '@/lib/supabase-server'
 
 // POST /api/participant — 初回カード取得時に参加者レコードを作成 or 既存参加者のカードを更新
 export async function POST(request: NextRequest) {
@@ -63,6 +56,15 @@ export async function POST(request: NextRequest) {
     .single()
 
   if (error) {
+    // 同時リクエストで UNIQUE 制約違反が起きた場合は既存レコードを返す
+    if (error.code === '23505') {
+      const { data: race } = await supabase
+        .from('participants')
+        .select('id')
+        .eq('primary_card_id', cardId)
+        .single()
+      if (race) return NextResponse.json({ participantNo: race.id })
+    }
     return NextResponse.json({ error: 'サーバーエラー: ' + error.message }, { status: 500 })
   }
 

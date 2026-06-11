@@ -1,12 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-
-function getServiceClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
-}
+import { getServiceClient } from '@/lib/supabase-server'
 
 function checkAdminAuth(request: NextRequest): boolean {
   return request.headers.get('x-admin-password') === process.env.ADMIN_PASSWORD
@@ -30,26 +23,13 @@ export async function POST(request: NextRequest) {
 
   const supabase = getServiceClient()
 
-  // レコードの存在確認
-  const { data: existing } = await supabase
+  // upsert で SELECT→INSERT の競合を回避
+  const { error } = await supabase
     .from('participant_stamps')
-    .select('id')
-    .eq('participant_id', participantNo)
-    .single()
-
-  let error
-  if (existing) {
-    const result = await supabase
-      .from('participant_stamps')
-      .update({ [stamp]: value })
-      .eq('participant_id', participantNo)
-    error = result.error
-  } else {
-    const result = await supabase
-      .from('participant_stamps')
-      .insert({ participant_id: participantNo, [stamp]: value })
-    error = result.error
-  }
+    .upsert(
+      { participant_id: participantNo, [stamp]: value },
+      { onConflict: 'participant_id' }
+    )
 
   if (error) {
     return NextResponse.json({ error: 'サーバーエラー: ' + error.message }, { status: 500 })
@@ -67,7 +47,6 @@ export async function GET(request: NextRequest) {
   const participantNo = request.nextUrl.searchParams.get('participantNo')
   if (!participantNo) return NextResponse.json({ error: 'participantNo required' }, { status: 400 })
 
-  // 参加者番号の存在確認
   const supabase = getServiceClient()
   const { data: participant } = await supabase
     .from('participants')

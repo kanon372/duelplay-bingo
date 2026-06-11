@@ -1,19 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-
-function getClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
-}
+import { getServiceClient } from '@/lib/supabase-server'
 
 // GET /api/stamp?participantNo=X — お客さんのスタンプ状況を取得（参加者番号ベース）
 export async function GET(request: NextRequest) {
   const participantNo = Number(request.nextUrl.searchParams.get('participantNo'))
   if (!participantNo) return NextResponse.json({ error: 'participantNo required' }, { status: 400 })
 
-  const supabase = getClient()
+  const supabase = getServiceClient()
   const { data } = await supabase
     .from('participant_stamps')
     .select('stamp_ad, stamp_nd, stamp_rental')

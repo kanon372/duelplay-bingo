@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { getAnonClient } from '@/lib/supabase-server'
 
 export async function POST(request: NextRequest) {
   const { cardIds } = await request.json()
@@ -7,10 +7,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ validIds: [] })
   }
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
+  const supabase = getAnonClient()
 
   const { data } = await supabase
     .from('bingo_cards')
