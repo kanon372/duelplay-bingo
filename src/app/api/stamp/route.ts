@@ -6,7 +6,8 @@ export async function GET(request: NextRequest) {
   const participantNo = Number(request.nextUrl.searchParams.get('participantNo'))
   if (!participantNo) return NextResponse.json({ error: 'participantNo required' }, { status: 400 })
 
-  const supabase = getServiceClient()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase = getServiceClient() as any
   const { data } = await supabase
     .from('participant_stamps')
     .select('stamp_ad, stamp_nd, stamp_rental')

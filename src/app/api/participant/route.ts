@@ -6,7 +6,8 @@ export async function POST(request: NextRequest) {
   const { cardId, existingParticipantNo } = await request.json()
   if (!cardId) return NextResponse.json({ error: 'cardId required' }, { status: 400 })
 
-  const supabase = getServiceClient()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase = getServiceClient() as any
 
   // 既存の参加者番号がある場合 → そのレコードのカードIDを新しいカードに更新（番号を引き継ぐ）
   if (existingParticipantNo) {
@@ -76,7 +77,8 @@ export async function GET(request: NextRequest) {
   const cardId = Number(request.nextUrl.searchParams.get('cardId'))
   if (!cardId) return NextResponse.json({ error: 'cardId required' }, { status: 400 })
 
-  const supabase = getServiceClient()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase = getServiceClient() as any
   const { data } = await supabase
     .from('participants')
     .select('id')

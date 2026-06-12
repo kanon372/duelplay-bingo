@@ -21,7 +21,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: '不正なスタンプ名' }, { status: 400 })
   }
 
-  const supabase = getServiceClient()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase = getServiceClient() as any
 
   // upsert で SELECT→INSERT の競合を回避
   const { error } = await supabase
@@ -47,7 +48,8 @@ export async function GET(request: NextRequest) {
   const participantNo = request.nextUrl.searchParams.get('participantNo')
   if (!participantNo) return NextResponse.json({ error: 'participantNo required' }, { status: 400 })
 
-  const supabase = getServiceClient()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase = getServiceClient() as any
   const { data: participant } = await supabase
     .from('participants')
     .select('id')

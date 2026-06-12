@@ -33,11 +33,13 @@ export async function GET(request: NextRequest) {
     console.error('participant_stamps fetch error:', sErr)
   }
 
+  type StampRow = { participant_id: number; stamp_ad: boolean; stamp_nd: boolean; stamp_rental: boolean }
+  type ParticipantRow = { id: number; primary_card_id: number; created_at: string }
   const stampsMap = Object.fromEntries(
-    (stamps ?? []).map(s => [s.participant_id, s])
+    ((stamps ?? []) as StampRow[]).map(s => [s.participant_id, s])
   )
 
-  const result = (participants ?? []).map(p => ({
+  const result = ((participants ?? []) as ParticipantRow[]).map(p => ({
     ...p,
     participant_stamps: stampsMap[p.id] ?? null,
   }))

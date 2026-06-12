@@ -11,7 +11,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: '無効な文明名です' }, { status: 400 })
   }
 
-  const supabase = getServiceClient()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase = getServiceClient() as any
   const { data, error } = await supabase.rpc('assign_bingo_card', { civ: civilization })
 
   if (error) {

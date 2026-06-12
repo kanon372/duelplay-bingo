@@ -23,7 +23,8 @@ export async function POST(request: NextRequest) {
 
   // カードのみリセット（スタンプ・参加者はそのまま）
   if (resetAll === true) {
-    const { error } = await supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase as any)
       .from('bingo_cards')
       .update({ assigned: false, assigned_at: null })
       .gte('id', 0)
@@ -35,7 +36,8 @@ export async function POST(request: NextRequest) {
   }
 
   if (typeof cardId === 'number' && !isNaN(cardId)) {
-    const { error } = await supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase as any)
       .from('bingo_cards')
       .update({ assigned: false, assigned_at: null })
       .eq('id', cardId)

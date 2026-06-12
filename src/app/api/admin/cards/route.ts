@@ -16,8 +16,10 @@ export async function GET(request: NextRequest) {
 
   if (error) return NextResponse.json({ error: 'サーバーエラー' }, { status: 500 })
 
+  const rows = data as { id: number; civilization: string; assigned: boolean; assigned_at: string | null }[]
+
   const summary = ['光', '水', '火', '自然', '闇'].map(civ => {
-    const civCards = data.filter(c => c.civilization === civ)
+    const civCards = rows.filter(c => c.civilization === civ)
     return {
       civilization: civ,
       total: civCards.length,
@@ -26,5 +28,5 @@ export async function GET(request: NextRequest) {
     }
   })
 
-  return NextResponse.json({ cards: data, summary })
+  return NextResponse.json({ cards: rows, summary })
 }
