@@ -109,6 +109,7 @@ export default function BingoGrid({ card, accentColor = '#fbbf24' }: BingoGridPr
             color: '#ffd700',
             textShadow: '0 1px 3px rgba(0,0,0,0.9)',
             background: 'rgba(0,0,0,0.4)',
+            zIndex: 20,
           }}
         >
           🎉 {bingoLines.length}ライン BINGO！
