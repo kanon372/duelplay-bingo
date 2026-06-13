@@ -36,6 +36,7 @@ export default function AdminPage() {
   // 番号復元
   const [restoreNo, setRestoreNo] = useState('')
   const [restoreUrl, setRestoreUrl] = useState('')
+  const [restoreQR, setRestoreQR] = useState('')
   const [restoreError, setRestoreError] = useState('')
   const [restoreLoading, setRestoreLoading] = useState(false)
 
@@ -111,11 +112,15 @@ export default function AdminPage() {
   const handleRestore = async () => {
     const no = parseInt(restoreNo, 10)
     if (isNaN(no) || no <= 0) { setRestoreError('有効な番号を入力してください'); return }
-    setRestoreLoading(true); setRestoreError(''); setRestoreUrl('')
+    setRestoreLoading(true); setRestoreError(''); setRestoreUrl(''); setRestoreQR('')
     const res = await fetch(`/api/restore?participantNo=${no}`)
     setRestoreLoading(false)
     if (!res.ok) { const d = await res.json(); setRestoreError(d.error ?? 'エラーが発生しました'); return }
-    setRestoreUrl(`${window.location.origin}/restore/${no}`)
+    const url = `${window.location.origin}/restore/${no}`
+    setRestoreUrl(url)
+    const QRCode = (await import('qrcode')).default
+    const dataUrl = await QRCode.toDataURL(url, { width: 240, margin: 2 })
+    setRestoreQR(dataUrl)
   }
 
   const deleteParticipant = async (participantNo: number) => {
@@ -272,16 +277,12 @@ export default function AdminPage() {
             </button>
           </div>
           {restoreError && <p className="text-red-400 text-sm mb-2">{restoreError}</p>}
-          {restoreUrl && (
-            <div className="bg-gray-800 rounded p-3">
-              <p className="text-green-400 text-xs mb-2">✅ このURLを参加者のブラウザで開いてもらうと復元されます</p>
-              <p className="text-white text-xs break-all font-mono bg-gray-700 rounded p-2 mb-2">{restoreUrl}</p>
-              <button
-                onClick={() => navigator.clipboard.writeText(restoreUrl)}
-                className="px-3 py-1 bg-gray-600 text-white text-xs rounded hover:bg-gray-500"
-              >
-                📋 コピー
-              </button>
+          {restoreQR && (
+            <div className="bg-gray-800 rounded p-4 flex flex-col items-center">
+              <p className="text-green-400 text-xs mb-3">✅ このQRを参加者のスマホで読み取ってもらうと復元されます</p>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={restoreQR} alt="復元用QR" className="rounded" width={240} height={240} />
+              <p className="text-gray-500 text-xs mt-2 break-all text-center">{restoreUrl}</p>
             </div>
           )}
         </section>
