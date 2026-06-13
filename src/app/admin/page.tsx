@@ -33,6 +33,12 @@ export default function AdminPage() {
   const [participantsLoading, setParticipantsLoading] = useState(false)
   const [showParticipants, setShowParticipants] = useState(false)
 
+  // 番号復元
+  const [restoreNo, setRestoreNo] = useState('')
+  const [restoreUrl, setRestoreUrl] = useState('')
+  const [restoreError, setRestoreError] = useState('')
+  const [restoreLoading, setRestoreLoading] = useState(false)
+
   const fetchData = useCallback(async (pw: string) => {
     const res = await fetch('/api/admin/cards', { headers: { 'x-admin-password': pw } })
     if (res.status === 401) { setAuthError('パスワードが違います'); setAuthed(false); return }
@@ -100,6 +106,16 @@ export default function AdminPage() {
       alert('参加者取得失敗: ' + e)
     }
     setParticipantsLoading(false)
+  }
+
+  const handleRestore = async () => {
+    const no = parseInt(restoreNo, 10)
+    if (isNaN(no) || no <= 0) { setRestoreError('有効な番号を入力してください'); return }
+    setRestoreLoading(true); setRestoreError(''); setRestoreUrl('')
+    const res = await fetch(`/api/restore?participantNo=${no}`)
+    setRestoreLoading(false)
+    if (!res.ok) { const d = await res.json(); setRestoreError(d.error ?? 'エラーが発生しました'); return }
+    setRestoreUrl(`${window.location.origin}/restore/${no}`)
   }
 
   const deleteParticipant = async (participantNo: number) => {
@@ -232,6 +248,40 @@ export default function AdminPage() {
               <p className="text-gray-500 text-xs pt-1">
                 スタンプ数: {[stampStatus.stamp_ad, stampStatus.stamp_nd, stampStatus.stamp_rental].filter(Boolean).length} / 3
               </p>
+            </div>
+          )}
+        </section>
+
+        {/* 番号復元 */}
+        <section className="mb-6">
+          <h2 className="text-gray-300 font-bold mb-2">🔄 参加者番号で復元（スタッフ用）</h2>
+          <div className="flex gap-2 mb-2">
+            <input
+              type="number"
+              value={restoreNo}
+              onChange={e => { setRestoreNo(e.target.value); setRestoreUrl(''); setRestoreError('') }}
+              placeholder="参加者番号（例: 42）"
+              className="flex-1 p-2 rounded bg-gray-800 text-white border border-gray-600 text-sm"
+            />
+            <button
+              onClick={handleRestore}
+              disabled={!restoreNo || restoreLoading}
+              className="px-4 py-2 bg-blue-700 text-white rounded text-sm hover:bg-blue-600 disabled:opacity-50"
+            >
+              {restoreLoading ? '確認中...' : 'URLを生成'}
+            </button>
+          </div>
+          {restoreError && <p className="text-red-400 text-sm mb-2">{restoreError}</p>}
+          {restoreUrl && (
+            <div className="bg-gray-800 rounded p-3">
+              <p className="text-green-400 text-xs mb-2">✅ このURLを参加者のブラウザで開いてもらうと復元されます</p>
+              <p className="text-white text-xs break-all font-mono bg-gray-700 rounded p-2 mb-2">{restoreUrl}</p>
+              <button
+                onClick={() => navigator.clipboard.writeText(restoreUrl)}
+                className="px-3 py-1 bg-gray-600 text-white text-xs rounded hover:bg-gray-500"
+              >
+                📋 コピー
+              </button>
             </div>
           )}
         </section>

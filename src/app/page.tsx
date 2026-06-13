@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { getMyCards, canAddCard, removeCard, getParticipantNo, setParticipantNo, addMyCard } from '@/lib/localStorage'
+import { getMyCards, canAddCard, removeCard, getParticipantNo, setParticipantNo } from '@/lib/localStorage'
 import type { MyCard } from '@/types'
 import dynamic from 'next/dynamic'
 import StampCard from '@/components/StampCard'
@@ -28,10 +28,6 @@ export default function TopPage() {
   const [mounted, setMounted] = useState(false)
   const [participantNo, setParticipantNoState] = useState<number | null>(null)
   const [stampStatus, setStampStatus] = useState<StampStatus | null>(null)
-  const [showRestore, setShowRestore] = useState(false)
-  const [restoreInput, setRestoreInput] = useState('')
-  const [restoreMsg, setRestoreMsg] = useState('')
-  const [restoring, setRestoring] = useState(false)
 
   useEffect(() => {
     const localCards = getMyCards()
@@ -84,27 +80,6 @@ export default function TopPage() {
         .catch(() => {})
     }
   }, [])
-
-  const handleRestore = async () => {
-    const no = parseInt(restoreInput, 10)
-    if (isNaN(no) || no <= 0) { setRestoreMsg('正しい番号を入力してください'); return }
-    setRestoring(true)
-    setRestoreMsg('')
-    try {
-      const res = await fetch(`/api/restore?participantNo=${no}`)
-      const data = await res.json()
-      if (!res.ok) { setRestoreMsg(data.error ?? 'エラーが発生しました'); setRestoring(false); return }
-      setParticipantNo(data.participantNo)
-      setParticipantNoState(data.participantNo)
-      addMyCard({ id: data.card.id, civilization: data.card.civilization })
-      setCards(getMyCards())
-      setShowRestore(false)
-      setRestoreInput('')
-    } catch {
-      setRestoreMsg('通信エラーが発生しました')
-    }
-    setRestoring(false)
-  }
 
   const canAdd = mounted ? canAddCard() : true
 
@@ -162,16 +137,6 @@ export default function TopPage() {
           <StampCard participantNo={participantNo} onStampUpdate={setStampStatus} />
         )}
 
-        {/* 番号で復元ボタン (カードがないときだけ表示) */}
-        {mounted && cards.length === 0 && (
-          <button
-            onClick={() => setShowRestore(true)}
-            className="w-full mb-4 py-2 rounded-xl text-sm text-gray-400 border border-gray-700 hover:bg-gray-800 active:scale-95 transition-transform"
-          >
-            🔄 参加者番号で復元する
-          </button>
-        )}
-
         {/* まとめて見るボタン (2枚以上のとき表示) */}
         {cards.length >= 2 && (
           <Link
@@ -213,37 +178,6 @@ export default function TopPage() {
           </div>
         )}
       </div>
-
-      {/* 番号復元モーダル */}
-      {showRestore && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-800 rounded-2xl p-6 w-full max-w-sm">
-            <h2 className="text-white font-black text-lg mb-1">参加者番号で復元</h2>
-            <p className="text-gray-400 text-xs mb-4">以前に表示されていた参加者番号を入力してください</p>
-            <input
-              type="number"
-              value={restoreInput}
-              onChange={e => setRestoreInput(e.target.value)}
-              placeholder="例: 42"
-              className="w-full bg-gray-700 text-white rounded-lg px-4 py-3 text-2xl font-black text-center mb-3 outline-none"
-            />
-            {restoreMsg && <p className="text-red-400 text-sm text-center mb-3">{restoreMsg}</p>}
-            <button
-              onClick={handleRestore}
-              disabled={restoring}
-              className="w-full py-3 rounded-xl font-bold bg-yellow-500 text-black mb-2 disabled:opacity-50"
-            >
-              {restoring ? '復元中...' : '復元する'}
-            </button>
-            <button
-              onClick={() => { setShowRestore(false); setRestoreMsg(''); setRestoreInput('') }}
-              className="w-full py-2 text-gray-400 text-sm"
-            >
-              キャンセル
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* QRスキャナーモーダル */}
       {showScanner && (
