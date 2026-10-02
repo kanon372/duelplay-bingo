@@ -25,19 +25,25 @@ ALTER TABLE public.bingo_cards
 
 CREATE INDEX IF NOT EXISTS idx_bingo_cards_participant ON public.bingo_cards (participant_id);
 
--- 未配布カードの検索用（文明別）
-DROP INDEX IF EXISTS public.idx_bingo_cards_civ_unassigned;
-DROP INDEX IF EXISTS public.idx_bingo_cards_civ_assigned;
+-- 既存データの引き継ぎ: 旧仕様では participants.primary_card_id が「その参加者の最初のカード」だった。
+-- 新仕様の所有者(participant_id)に反映する（何度流しても同じ結果になる）。
+UPDATE public.bingo_cards c
+   SET participant_id = p.id
+  FROM public.participants p
+ WHERE p.primary_card_id = c.id
+   AND c.participant_id IS NULL;
+
+-- 未配布カードの検索用（文明別）。旧インデックス idx_bingo_cards_civ_unassigned / _civ_assigned は
+-- 使われなくなるが、削除は行わず残す（削除したい場合は手動で DROP INDEX）。
 CREATE INDEX IF NOT EXISTS idx_bingo_cards_civ_free
   ON public.bingo_cards (civilization) WHERE participant_id IS NULL;
 
 -- ---------------------------------------------------------------
--- 3. 使われていないテーブル / 旧関数の整理
+-- 3. 使われなくなったテーブル / 旧関数は削除せず、公開ロールから遮断する
+--    （stamp_cards と assign_bingo_card / unassign_bingo_card / reset_all_cards は新コードから使わない。
+--      不要になったら手動で DROP してよい）
 -- ---------------------------------------------------------------
-DROP TABLE IF EXISTS public.stamp_cards;
-DROP FUNCTION IF EXISTS public.assign_bingo_card(text);
-DROP FUNCTION IF EXISTS public.unassign_bingo_card(integer);
-DROP FUNCTION IF EXISTS public.reset_all_cards();
+ALTER TABLE IF EXISTS public.stamp_cards ENABLE ROW LEVEL SECURITY;
 
 -- ---------------------------------------------------------------
 -- 4. カード取得: 枚数・スタンプ条件の検証と配布を1トランザクションで行う
@@ -122,6 +128,21 @@ ALTER TABLE public.participant_stamps ENABLE ROW LEVEL SECURITY;
 
 REVOKE ALL ON public.bingo_cards, public.participants, public.participant_stamps
   FROM anon, authenticated;
+DO $$
+BEGIN
+  IF to_regclass('public.stamp_cards') IS NOT NULL THEN
+    EXECUTE 'REVOKE ALL ON public.stamp_cards FROM anon, authenticated';
+  END IF;
+  IF to_regprocedure('public.assign_bingo_card(text)') IS NOT NULL THEN
+    EXECUTE 'REVOKE ALL ON FUNCTION public.assign_bingo_card(text) FROM PUBLIC, anon, authenticated';
+  END IF;
+  IF to_regprocedure('public.unassign_bingo_card(integer)') IS NOT NULL THEN
+    EXECUTE 'REVOKE ALL ON FUNCTION public.unassign_bingo_card(integer) FROM PUBLIC, anon, authenticated';
+  END IF;
+  IF to_regprocedure('public.reset_all_cards()') IS NOT NULL THEN
+    EXECUTE 'REVOKE ALL ON FUNCTION public.reset_all_cards() FROM PUBLIC, anon, authenticated';
+  END IF;
+END $$;
 REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM anon, authenticated;
 
 REVOKE ALL ON FUNCTION public.claim_bingo_card(text, integer)  FROM PUBLIC, anon, authenticated;
