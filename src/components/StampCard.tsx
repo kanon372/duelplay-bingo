@@ -1,23 +1,35 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Image from 'next/image'
 
-import type { StampStatus } from '@/lib/session'
-
-interface StampCardProps {
-  status: StampStatus | null
-  onRefresh: () => Promise<void>
+interface StampStatus {
+  stamp_ad: boolean
+  stamp_nd: boolean
+  stamp_rental: boolean
 }
 
-export default function StampCard({ status, onRefresh }: StampCardProps) {
+interface StampCardProps {
+  participantNo: number
+  onStampUpdate?: (status: StampStatus) => void
+}
+
+export default function StampCard({ participantNo, onStampUpdate }: StampCardProps) {
+  const [status, setStatus] = useState<StampStatus | null>(null)
   const [refreshing, setRefreshing] = useState(false)
 
-  const handleRefresh = async () => {
+  const fetchStatus = async () => {
     setRefreshing(true)
-    try { await onRefresh() } catch { /* ignore */ }
+    try {
+      const r = await fetch(`/api/stamp?participantNo=${participantNo}&t=${Date.now()}`)
+      const data = await r.json()
+      setStatus(data)
+      onStampUpdate?.(data)
+    } catch { /* ignore */ }
     setRefreshing(false)
   }
+
+  useEffect(() => { fetchStatus() }, [participantNo])
 
   if (!status) return null
 
@@ -58,7 +70,7 @@ export default function StampCard({ status, onRefresh }: StampCardProps) {
 
       {/* 更新ボタン */}
       <button
-        onClick={handleRefresh}
+        onClick={fetchStatus}
         disabled={refreshing}
         className="w-full py-1.5 bg-gray-700 text-gray-400 text-xs hover:bg-gray-600 flex items-center justify-center gap-1 disabled:opacity-50"
       >

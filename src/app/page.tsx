@@ -1,10 +1,9 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { canAddCard } from '@/lib/localStorage'
-import { useLocalSession } from '@/lib/useLocalSession'
-import { syncSession, type StampStatus } from '@/lib/session'
+import { getMyCards, canAddCard, removeCard, getParticipantNo, setParticipantNo } from '@/lib/localStorage'
+import type { MyCard } from '@/types'
 import dynamic from 'next/dynamic'
 import StampCard from '@/components/StampCard'
 
@@ -21,24 +20,65 @@ const CIV_COLOR: Record<string, string> = {
 // 次のカードを取得するために必要なスタンプ数
 const STAMP_REQUIRED = [0, 2, 3] // 1枚目:0個, 2枚目:2個, 3枚目:3個
 
+interface StampStatus { stamp_ad: boolean; stamp_nd: boolean; stamp_rental: boolean }
+
 export default function TopPage() {
-  // 端末に保存した内容を先に表示し、サーバーの内容で更新する（保存が変わると自動で再描画）
-  const { cards, participantNo, mounted } = useLocalSession()
+  const [cards, setCards] = useState<MyCard[]>([])
   const [showScanner, setShowScanner] = useState(false)
+  const [mounted, setMounted] = useState(false)
+  const [participantNo, setParticipantNoState] = useState<number | null>(null)
   const [stampStatus, setStampStatus] = useState<StampStatus | null>(null)
 
-  const refresh = useCallback(async () => {
-    // サーバーが正。トークンが無効なら端末の保存が消え、画面も自動で初期状態になる。通信に失敗したときは例外
-    const session = await syncSession()
-    setStampStatus(session ? session.stamps : null)
-  }, [])
-
   useEffect(() => {
-    let alive = true
-    syncSession()
-      .then(session => { if (alive) setStampStatus(session ? session.stamps : null) })
-      .catch(() => {})
-    return () => { alive = false }
+    const localCards = getMyCards()
+    setCards(localCards)
+    setMounted(true)
+    const currentNo = getParticipantNo()
+    setParticipantNoState(currentNo)
+
+    // スタンプ状態を取得
+    if (currentNo) {
+      fetch(`/api/stamp?participantNo=${currentNo}&t=${Date.now()}`)
+        .then(r => r.json())
+        .then(data => setStampStatus(data))
+        .catch(() => {})
+    }
+
+    // カードの有効性確認 → 有効なカードがある場合のみ参加者登録（順番に実行して競合防止）
+    if (localCards.length > 0) {
+      fetch('/api/check-cards', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cardIds: localCards.map(c => c.id) }),
+      })
+        .then(r => r.json())
+        .then(({ validIds }: { validIds: number[] }) => {
+          const invalidCards = localCards.filter(c => !validIds.includes(c.id))
+          if (invalidCards.length > 0) {
+            invalidCards.forEach(c => removeCard(c.id))
+            setCards(getMyCards())
+          }
+
+          const validCards = localCards.filter(c => validIds.includes(c.id))
+          if (validCards.length === 0) return
+
+          // すでに参加者番号がある場合は再登録不要
+          if (getParticipantNo()) return
+
+          return fetch('/api/participant', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ cardId: validCards[0].id }),
+          }).then(r => r.json())
+        })
+        .then((data: { participantNo?: number } | void) => {
+          if (data?.participantNo) {
+            setParticipantNo(data.participantNo)
+            setParticipantNoState(data.participantNo)
+          }
+        })
+        .catch(() => {})
+    }
   }, [])
 
   const canAdd = mounted ? canAddCard() : true
@@ -94,7 +134,7 @@ export default function TopPage() {
 
         {/* スタンプカード (参加者番号があるとき表示) */}
         {mounted && participantNo && (
-          <StampCard status={stampStatus} onRefresh={refresh} />
+          <StampCard participantNo={participantNo} onStampUpdate={setStampStatus} />
         )}
 
         {/* まとめて見るボタン (2枚以上のとき表示) */}
@@ -143,7 +183,8 @@ export default function TopPage() {
       {showScanner && (
         <QRScanner onClose={() => {
           setShowScanner(false)
-          refresh().catch(() => {})
+          setCards(getMyCards())
+          setParticipantNoState(getParticipantNo())
         }} />
       )}
     </main>

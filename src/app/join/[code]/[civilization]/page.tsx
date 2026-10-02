@@ -1,87 +1,76 @@
 'use client'
 
-import Link from 'next/link'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { clearSession, getToken, setParticipantNo, setToken } from '@/lib/localStorage'
-import { syncSession } from '@/lib/session'
+import { addMyCard, canAddCard, getMyCards, getParticipantNo, setParticipantNo } from '@/lib/localStorage'
+import type { Civilization } from '@/types'
 
-type Status = 'loading' | 'invalid' | 'full' | 'error' | 'sold_out' | 'stamp_required'
-
-interface ClaimResponse {
-  status: 'ok' | 'full' | 'sold_out' | 'stamp_required' | 'invalid_code' | 'no_participant'
-  card?: { id: number; civilization: string }
-  participantNo?: number
-  token?: string
-  required?: number
-  current?: number
-}
+const STAMP_REQUIRED = [0, 2, 3]
 
 export default function JoinPage() {
   const router = useRouter()
   const params = useParams()
   const code = params.code as string
   const civilization = decodeURIComponent(params.civilization as string)
-  const [status, setStatus] = useState<Status>('loading')
+  const [status, setStatus] = useState<'loading' | 'invalid' | 'full' | 'error' | 'sold_out' | 'stamp_required'>('loading')
   const [message, setMessage] = useState('')
   const [requiredStamps, setRequiredStamps] = useState(0)
   const [currentStamps, setCurrentStamps] = useState(0)
-  const [participantNo, setParticipantNoState] = useState<number | null>(null)
-  const started = useRef(false)
 
   useEffect(() => {
-    // React StrictMode の二重実行などでカードを2枚取らないようにする
-    if (started.current) return
-    started.current = true
+    // イベントコード検証
+    if (code !== process.env.NEXT_PUBLIC_EVENT_CODE) {
+      setStatus('invalid')
+      return
+    }
 
-    const claim = async () => {
+    if (!canAddCard()) { setStatus('full'); return }
+
+    const assign = async () => {
+      const myCards = getMyCards()
+      const nextIndex = myCards.length
+      const required = STAMP_REQUIRED[nextIndex] ?? 99
+      if (required > 0) {
+        const participantNo = getParticipantNo()
+        if (!participantNo) { setRequiredStamps(required); setCurrentStamps(0); setStatus('stamp_required'); return }
+        const stampRes = await fetch(`/api/stamp?participantNo=${participantNo}&t=${Date.now()}`)
+        const stampData = await stampRes.json()
+        const count = [stampData.stamp_ad, stampData.stamp_nd, stampData.stamp_rental].filter(Boolean).length
+        if (count < required) { setRequiredStamps(required); setCurrentStamps(count); setStatus('stamp_required'); return }
+      }
+
       try {
-        const res = await fetch('/api/claim', {
+        const res = await fetch('/api/assign', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ code, civilization, token: getToken() }),
+          body: JSON.stringify({ civilization }),
         })
-        if (res.status === 403) { setStatus('invalid'); return }
-        if (!res.ok) {
-          setStatus('error')
-          setMessage('エラーが発生しました。スタッフにお声がけください。')
-          return
-        }
-        const data: ClaimResponse = await res.json()
+        if (res.status === 409) { setStatus('sold_out'); return }
+        if (!res.ok) { setStatus('error'); setMessage('エラーが発生しました。スタッフにお声がけください。'); return }
+        const { card } = await res.json()
+        const isFirstCard = getMyCards().length === 0
+        addMyCard({ id: card.id, civilization: card.civilization as Civilization })
 
-        // サーバーが発行した（または確認した）トークンを保存。トークンが変わった場合は古い端末内の状態を捨てる
-        if (data.token) {
-          if (getToken() !== data.token) clearSession()
-          setToken(data.token)
-        }
-        if (data.participantNo) {
-          setParticipantNo(data.participantNo)
-          setParticipantNoState(data.participantNo)
+        if (isFirstCard) {
+          try {
+            const existingParticipantNo = getParticipantNo()
+            const pRes = await fetch('/api/participant', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ cardId: card.id, existingParticipantNo }),
+            })
+            const pData = await pRes.json()
+            if (pData.participantNo) setParticipantNo(pData.participantNo)
+          } catch (e) { console.error('参加者登録エラー:', e) }
         }
 
-        switch (data.status) {
-          case 'ok':
-            // 端末のカード一覧をサーバーの内容に合わせてから、受け取ったカードを開く
-            await syncSession().catch(() => {})
-            router.replace(`/card/${data.card!.id}`)
-            return
-          case 'full': setStatus('full'); return
-          case 'sold_out': setStatus('sold_out'); return
-          case 'stamp_required':
-            setRequiredStamps(data.required ?? 0)
-            setCurrentStamps(data.current ?? 0)
-            setStatus('stamp_required')
-            return
-          default:
-            setStatus('error')
-            setMessage('エラーが発生しました。スタッフにお声がけください。')
-        }
+        router.replace(`/card/${card.id}`)
       } catch {
         setStatus('error')
-        setMessage('通信エラーが発生しました。電波の良い場所でもう一度お試しください。')
+        setMessage('通信エラーが発生しました。')
       }
     }
-    claim()
+    assign()
   }, [code, civilization, router])
 
   if (status === 'loading') return (
@@ -110,9 +99,8 @@ export default function JoinPage() {
         <h1 className="text-xl font-bold mb-2">スタンプが足りません</h1>
         <p className="text-gray-400 mb-1 text-sm">次のカードには<span className="text-yellow-400 font-bold">スタンプ{requiredStamps}個</span>必要です</p>
         <p className="text-gray-500 mb-4 text-sm">現在: {currentStamps}個</p>
-        {participantNo && <p className="text-gray-300 text-sm mb-2">参加者番号 <span className="font-black text-lg">#{participantNo}</span></p>}
         <p className="text-gray-400 text-xs mb-6">スタッフにお声がけいただくとスタンプを押してもらえます</p>
-        <Link href="/" className="text-blue-400 underline text-sm">マイカード一覧へ戻る</Link>
+        <a href="/" className="text-blue-400 underline text-sm">マイカード一覧へ戻る</a>
       </div>
     </div>
   )
@@ -123,7 +111,7 @@ export default function JoinPage() {
         <div className="text-5xl mb-4">🃏</div>
         <h1 className="text-xl font-bold mb-2">カードは3枚までです</h1>
         <p className="text-gray-400 mb-4 text-sm">すでに3枚のカードをお持ちです</p>
-        <Link href="/" className="text-blue-400 underline text-sm">マイカード一覧へ</Link>
+        <a href="/" className="text-blue-400 underline text-sm">マイカード一覧へ</a>
       </div>
     </div>
   )

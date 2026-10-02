@@ -1,18 +1,8 @@
 import QRCode from 'qrcode'
 import * as fs from 'fs'
 import * as path from 'path'
-import * as dotenv from 'dotenv'
 
-dotenv.config({ path: path.resolve(__dirname, '../.env.local') })
-
-// QRのURLは /join/<イベントコード>/<文明>。イベントコードが違うQR（別イベントのもの）はサーバー側で受け付けない。
-const SITE_URL = (process.env.SITE_URL ?? 'https://duelplay-bingo.vercel.app').replace(/\/$/, '')
-const EVENT_CODE = process.env.EVENT_CODE ?? process.env.NEXT_PUBLIC_EVENT_CODE
-if (!EVENT_CODE) {
-  console.error('EVENT_CODE が未設定です（.env.local に設定してください）')
-  process.exit(1)
-}
-const BASE_URL = `${SITE_URL}/join/${encodeURIComponent(EVENT_CODE)}`
+const BASE_URL = 'https://duelplay-bingo.vercel.app/assign'
 
 const CIVILIZATIONS = [
   { name: '光', color: '#b45309', bg: '#fef3c7', emoji: '☀️' },
@@ -39,12 +29,6 @@ async function generateQRCodes() {
     console.log(`Generated QR for ${civ.name}文明: ${url}`)
   }
 
-  // アプリを開く用のQR（トップ画面。イベントコードは含まない）。お客さんはこれでアプリを開き、
-  // アプリ内の「QRコードを読み取る」で、上の文明ごとのQRを読み取ってカードを受け取る。
-  const appUrl = `${SITE_URL}/`
-  const appQr = await QRCode.toDataURL(appUrl, { width: 300, margin: 2, color: { dark: '#111827', light: '#ffffff' } })
-  console.log(`Generated QR for アプリを開く: ${appUrl}`)
-
   const html = `<!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -69,11 +53,6 @@ async function generateQRCodes() {
     .card .emoji { font-size: 2rem; margin-bottom: 8px; }
     .card img { width: 200px; height: 200px; border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.3); }
     .card .label { margin-top: 12px; font-size: 0.75rem; color: rgba(0,0,0,0.5); word-break: break-all; }
-    .open-app { max-width: 900px; margin: 0 auto 28px; background: #fff; border-radius: 16px; padding: 24px; display: flex; gap: 28px; align-items: center; justify-content: center; flex-wrap: wrap; box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
-    .open-app img { width: 200px; height: 200px; border-radius: 8px; border: 1px solid #e5e7eb; }
-    .open-app h2 { font-size: 1.5rem; font-weight: 900; color: #111827; margin-bottom: 10px; }
-    .open-app ol { color: #374151; font-size: 1rem; line-height: 1.9; padding-left: 1.4em; }
-    .open-app ol b { color: #b45309; }
     .print-btn {
       display: block; margin: 32px auto 0; padding: 12px 32px;
       background: #ffd700; color: #1a1a2e; border: none; border-radius: 8px;
@@ -84,43 +63,28 @@ async function generateQRCodes() {
       h1 { color: #333; text-shadow: none; }
       .grid { gap: 16px; }
       .print-btn { display: none; }
-      .open-app { box-shadow: none; border: 2px solid #333; }
     }
   </style>
 </head>
 <body>
   <h1>⚔️ BINGO QR</h1>
   <p class="subtitle">デュエルマスターズプレイ バトルキャラバン</p>
-  <div class="open-app">
-    <img src="${appQr}" alt="アプリを開くQR" />
-    <div>
-      <h2>① まずこのQRでアプリを開く</h2>
-      <ol>
-        <li>このQRを、スマホのカメラで読み取って<b>アプリを開く</b></li>
-        <li>アプリの<b>「QRコードを読み取る」</b>ボタンを押す</li>
-        <li>下の<b>文明のQR</b>（好きな文明）を読み取って、ビンゴカードをゲット！</li>
-      </ol>
-    </div>
-  </div>
   <div class="grid">
     ${qrDataList.map(civ => `
     <div class="card" style="background: ${civ.bg};">
       <div class="emoji">${civ.emoji}</div>
       <h2 style="color: ${civ.color};">${civ.name}文明</h2>
       <img src="${civ.dataUrl}" alt="${civ.name}文明QR" />
-      <p class="label">アプリ内のスキャナーで読み取る</p>
+      <p class="label">assign/${encodeURIComponent(civ.name)}</p>
     </div>`).join('')}
   </div>
   <button class="print-btn" onclick="window.print()">🖨️ 印刷する</button>
 </body>
 </html>`
 
-  // イベントコードを含むため、公開フォルダ(public/)には置かず out/ に出力する（gitignore済み）
-  const outDir = path.resolve(__dirname, '../out')
-  fs.mkdirSync(outDir, { recursive: true })
-  const outPath = path.join(outDir, 'qr-codes.html')
+  const outPath = path.resolve(__dirname, '../public/qr-codes.html')
   fs.writeFileSync(outPath, html, 'utf-8')
-  console.log(`\nQR codes saved to: out/qr-codes.html`)
+  console.log(`\nQR codes saved to: public/qr-codes.html`)
   console.log(`Open in browser: file://${outPath}`)
 }
 
