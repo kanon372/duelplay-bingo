@@ -85,7 +85,7 @@ async function generateQRCodes() {
       <div class="emoji">${civ.emoji}</div>
       <h2 style="color: ${civ.color};">${civ.name}文明</h2>
       <img src="${civ.dataUrl}" alt="${civ.name}文明QR" />
-      <p class="label">assign/${encodeURIComponent(civ.name)}</p>
+      <p class="label">スマホで読み取ってカードをゲット</p>
     </div>`).join('')}
   </div>
   <button class="print-btn" onclick="window.print()">🖨️ 印刷する</button>
