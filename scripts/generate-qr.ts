@@ -1,18 +1,8 @@
 import QRCode from 'qrcode'
 import * as fs from 'fs'
 import * as path from 'path'
-import * as dotenv from 'dotenv'
 
-dotenv.config({ path: path.resolve(__dirname, '../.env.local') })
-
-// QRのURLは /join/<イベントコード>/<文明>。イベントコードが違うQR（別イベントのもの）はサーバー側で受け付けない。
-const SITE_URL = (process.env.SITE_URL ?? 'https://duelplay-bingo.vercel.app').replace(/\/$/, '')
-const EVENT_CODE = process.env.EVENT_CODE ?? process.env.NEXT_PUBLIC_EVENT_CODE
-if (!EVENT_CODE) {
-  console.error('EVENT_CODE が未設定です（.env.local に設定してください）')
-  process.exit(1)
-}
-const BASE_URL = `${SITE_URL}/join/${encodeURIComponent(EVENT_CODE)}`
+const BASE_URL = 'https://duelplay-bingo.vercel.app/assign'
 
 const CIVILIZATIONS = [
   { name: '光', color: '#b45309', bg: '#fef3c7', emoji: '☀️' },
@@ -92,12 +82,9 @@ async function generateQRCodes() {
 </body>
 </html>`
 
-  // イベントコードを含むため、公開フォルダ(public/)には置かず out/ に出力する（gitignore済み）
-  const outDir = path.resolve(__dirname, '../out')
-  fs.mkdirSync(outDir, { recursive: true })
-  const outPath = path.join(outDir, 'qr-codes.html')
+  const outPath = path.resolve(__dirname, '../public/qr-codes.html')
   fs.writeFileSync(outPath, html, 'utf-8')
-  console.log(`\nQR codes saved to: out/qr-codes.html`)
+  console.log(`\nQR codes saved to: public/qr-codes.html`)
   console.log(`Open in browser: file://${outPath}`)
 }
 

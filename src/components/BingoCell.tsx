@@ -5,12 +5,7 @@ import { STAMP_IMAGES, STAMP_FALLBACK, STAMP_FALLBACK_COLOR } from '@/config/sta
 
 interface BingoCellProps {
   cellValue: string
-  /** 開けた（スタンプ済み）。端末内の演出用の状態で、ビンゴ判定には使わない */
   isStamped: boolean
-  /** このカードがゲームで出た（開けられる状態） */
-  isDrawn: boolean
-  /** 直前の更新で新しく出た */
-  isNewDraw: boolean
   isHighlighted: boolean
   accentColor?: string
   colIndex: number   // 0〜4 (列番号)
@@ -20,8 +15,6 @@ interface BingoCellProps {
 export default function BingoCell({
   cellValue,
   isStamped,
-  isDrawn,
-  isNewDraw,
   isHighlighted,
   accentColor = '#fbbf24',
   colIndex,
@@ -29,22 +22,17 @@ export default function BingoCell({
 }: BingoCellProps) {
   const isFree = cellValue === 'FREE'
   const stampImage = STAMP_IMAGES[colIndex]
-  // 出たけれどまだ開けていないマス: 光ってタップを促す
-  const isReady = isDrawn && !isStamped && !isFree
 
   return (
     <div
-      className={`relative w-full h-full select-none transition-opacity ${isReady ? 'cursor-pointer cell-ready' : ''} ${isNewDraw && !isFree ? 'cell-new' : ''}`}
+      className="relative w-full h-full cursor-pointer select-none active:opacity-80 transition-opacity"
       style={{
-        ['--accent' as string]: accentColor,
         background: 'transparent',
         outline: isHighlighted ? `2px solid ${accentColor}` : 'none',
         outlineOffset: '-2px',
         overflow: 'visible',
       }}
-      onClick={isReady ? onClick : undefined}
-      role={isReady ? 'button' : undefined}
-      aria-label={isReady ? 'カードが出ました。タップして開ける' : undefined}
+      onClick={isFree ? undefined : onClick}
     >
       {isFree ? (
         /* FREEセル: 背景テンプレートの FREE 表示に合わせて透明 */
@@ -62,7 +50,7 @@ export default function BingoCell({
           }}
         >
           <Image
-            src={`/cards/${cellValue}.webp`}
+            src={`/cards/${cellValue}.png`}
             alt={cellValue}
             fill
             className="object-contain"
@@ -78,7 +66,7 @@ export default function BingoCell({
           style={{ zIndex: 10 }}
         >
           {stampImage ? (
-            <div className="animate-stamp" style={{ position: 'absolute', inset: '0%' }}>
+            <div style={{ position: 'absolute', inset: '0%' }}>
               <Image
                 src={stampImage}
                 alt="stamp"

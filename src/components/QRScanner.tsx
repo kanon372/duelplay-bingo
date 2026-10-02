@@ -70,15 +70,23 @@ export default function QRScanner({ onClose }: QRScannerProps) {
       if (code) {
         try {
           const url = new URL(code.data)
-          // /join/[code]/[civilization] のみ受け付ける（旧形式 /assign/... はイベントコードが無いので対象外）
+          // 新形式: /join/[code]/[civilization]
           const joinMatch = url.pathname.match(/\/join\/([^/]+)\/(.+)$/)
-          if (joinMatch) {
+          // 旧形式: /assign/[civilization] (後方互換)
+          const assignMatch = url.pathname.match(/\/assign\/(.+)$/)
+          const match = joinMatch ?? assignMatch
+          if (match) {
             if (!active) return
             setDetected(true)
             stopAll()
-            const eventCode = joinMatch[1]
-            const civ = decodeURIComponent(joinMatch[2])
-            router.push(`/join/${eventCode}/${encodeURIComponent(civ)}`)
+            if (joinMatch) {
+              const eventCode = joinMatch[1]
+              const civ = decodeURIComponent(joinMatch[2])
+              router.push(`/join/${eventCode}/${encodeURIComponent(civ)}`)
+            } else {
+              const civ = decodeURIComponent(match[1])
+              router.push(`/join/${process.env.NEXT_PUBLIC_EVENT_CODE}/${encodeURIComponent(civ)}`)
+            }
             onClose()
             return
           }
