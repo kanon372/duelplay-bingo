@@ -1,8 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
-import { getMyCards, canAddCard, removeCard, getParticipantNo, setParticipantNo } from '@/lib/localStorage'
+import { getMyCards, canAddCard, getParticipantNo } from '@/lib/localStorage'
+import { syncSession, type StampStatus } from '@/lib/session'
 import type { MyCard } from '@/types'
 import dynamic from 'next/dynamic'
 import StampCard from '@/components/StampCard'
@@ -20,8 +21,6 @@ const CIV_COLOR: Record<string, string> = {
 // 次のカードを取得するために必要なスタンプ数
 const STAMP_REQUIRED = [0, 2, 3] // 1枚目:0個, 2枚目:2個, 3枚目:3個
 
-interface StampStatus { stamp_ad: boolean; stamp_nd: boolean; stamp_rental: boolean }
-
 export default function TopPage() {
   const [cards, setCards] = useState<MyCard[]>([])
   const [showScanner, setShowScanner] = useState(false)
@@ -29,57 +28,25 @@ export default function TopPage() {
   const [participantNo, setParticipantNoState] = useState<number | null>(null)
   const [stampStatus, setStampStatus] = useState<StampStatus | null>(null)
 
-  useEffect(() => {
-    const localCards = getMyCards()
-    setCards(localCards)
-    setMounted(true)
-    const currentNo = getParticipantNo()
-    setParticipantNoState(currentNo)
-
-    // スタンプ状態を取得
-    if (currentNo) {
-      fetch(`/api/stamp?participantNo=${currentNo}&t=${Date.now()}`)
-        .then(r => r.json())
-        .then(data => setStampStatus(data))
-        .catch(() => {})
+  const refresh = useCallback(async () => {
+    // サーバーが正。通信に失敗したときは端末のキャッシュ表示のまま
+    const session = await syncSession()
+    if (!session) {
+      setCards([]); setParticipantNoState(null); setStampStatus(null)
+      return
     }
-
-    // カードの有効性確認 → 有効なカードがある場合のみ参加者登録（順番に実行して競合防止）
-    if (localCards.length > 0) {
-      fetch('/api/check-cards', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cardIds: localCards.map(c => c.id) }),
-      })
-        .then(r => r.json())
-        .then(({ validIds }: { validIds: number[] }) => {
-          const invalidCards = localCards.filter(c => !validIds.includes(c.id))
-          if (invalidCards.length > 0) {
-            invalidCards.forEach(c => removeCard(c.id))
-            setCards(getMyCards())
-          }
-
-          const validCards = localCards.filter(c => validIds.includes(c.id))
-          if (validCards.length === 0) return
-
-          // すでに参加者番号がある場合は再登録不要
-          if (getParticipantNo()) return
-
-          return fetch('/api/participant', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ cardId: validCards[0].id }),
-          }).then(r => r.json())
-        })
-        .then((data: { participantNo?: number } | void) => {
-          if (data?.participantNo) {
-            setParticipantNo(data.participantNo)
-            setParticipantNoState(data.participantNo)
-          }
-        })
-        .catch(() => {})
-    }
+    setCards(session.cards)
+    setParticipantNoState(session.participantNo)
+    setStampStatus(session.stamps)
   }, [])
+
+  useEffect(() => {
+    // 端末のキャッシュを先に表示してから、サーバーの内容で更新する
+    setCards(getMyCards())
+    setParticipantNoState(getParticipantNo())
+    setMounted(true)
+    refresh().catch(() => {})
+  }, [refresh])
 
   const canAdd = mounted ? canAddCard() : true
 
@@ -134,7 +101,7 @@ export default function TopPage() {
 
         {/* スタンプカード (参加者番号があるとき表示) */}
         {mounted && participantNo && (
-          <StampCard participantNo={participantNo} onStampUpdate={setStampStatus} />
+          <StampCard status={stampStatus} onRefresh={refresh} />
         )}
 
         {/* まとめて見るボタン (2枚以上のとき表示) */}
@@ -185,6 +152,7 @@ export default function TopPage() {
           setShowScanner(false)
           setCards(getMyCards())
           setParticipantNoState(getParticipantNo())
+          refresh().catch(() => {})
         }} />
       )}
     </main>

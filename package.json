@@ -6,11 +6,14 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint .",
     "copy-images": "tsx scripts/copy-images.ts",
     "seed-db": "tsx scripts/seed-db.ts",
     "test": "vitest",
-    "test:run": "vitest run"
+    "test:run": "vitest run",
+    "make-thumbs": "tsx scripts/make-thumbs.ts",
+    "typecheck": "tsc --noEmit",
+    "generate-qr": "tsx scripts/generate-qr.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.108.0",
@@ -33,6 +36,7 @@
     "eslint": "^9",
     "eslint-config-next": "^16.2.7",
     "jsdom": "^29.1.1",
+    "sharp": "^0.34.5",
     "tailwindcss": "^4",
     "tsx": "^4.22.4",
     "typescript": "^5",

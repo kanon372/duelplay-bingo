@@ -3,6 +3,7 @@ import type { MyCard } from '@/types'
 const MY_CARDS_KEY = 'bingo_my_cards'
 const STAMPS_PREFIX = 'bingo_stamps_'
 const PARTICIPANT_NO_KEY = 'bingo_participant_no'
+const TOKEN_KEY = 'bingo_token'
 const MAX_CARDS = 3
 const FREE_INDEX = 12
 
@@ -15,6 +16,36 @@ export function getParticipantNo(): number | null {
 export function setParticipantNo(no: number): void {
   if (typeof window === 'undefined') return
   localStorage.setItem(PARTICIPANT_NO_KEY, String(no))
+}
+
+/** 参加者の秘密トークン。本人確認はこれで行う（参加者番号は表示用） */
+export function getToken(): string | null {
+  if (typeof window === 'undefined') return null
+  return localStorage.getItem(TOKEN_KEY)
+}
+
+export function setToken(token: string): void {
+  if (typeof window === 'undefined') return
+  localStorage.setItem(TOKEN_KEY, token)
+}
+
+/** サーバーの内容でマイカード一覧を置き換える（サーバーが正、端末はキャッシュ） */
+export function setMyCards(cards: MyCard[]): void {
+  if (typeof window === 'undefined') return
+  const keep = new Set(cards.map(c => c.id))
+  for (const old of getMyCards()) {
+    if (!keep.has(old.id)) localStorage.removeItem(`${STAMPS_PREFIX}${old.id}`)
+  }
+  localStorage.setItem(MY_CARDS_KEY, JSON.stringify(cards.slice(0, MAX_CARDS)))
+}
+
+/** 参加者に関する端末内の保存を全て消す（リセット後の古い端末用） */
+export function clearSession(): void {
+  if (typeof window === 'undefined') return
+  for (const card of getMyCards()) localStorage.removeItem(`${STAMPS_PREFIX}${card.id}`)
+  localStorage.removeItem(MY_CARDS_KEY)
+  localStorage.removeItem(PARTICIPANT_NO_KEY)
+  localStorage.removeItem(TOKEN_KEY)
 }
 
 export function getMyCards(): MyCard[] {

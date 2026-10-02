@@ -1,10 +1,12 @@
 'use client'
 
+import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { setParticipantNo, addMyCard } from '@/lib/localStorage'
-import type { Civilization } from '@/types'
+import { clearSession, setToken } from '@/lib/localStorage'
+import { syncSession } from '@/lib/session'
 
+/** スタッフが発行した復元用QR（/restore/[秘密トークン]）を開くと、参加者の状態を端末に復元する */
 export default function RestorePage() {
   const params = useParams()
   const router = useRouter()
@@ -12,20 +14,17 @@ export default function RestorePage() {
   const [errorMsg, setErrorMsg] = useState('')
 
   useEffect(() => {
-    const no = Number(params.no)
-    if (isNaN(no) || no <= 0) { setErrorMsg('無効な参加者番号です'); setStatus('error'); return }
-
-    fetch(`/api/restore?participantNo=${no}`)
-      .then(r => r.json())
-      .then(data => {
-        if (data.error) { setErrorMsg(data.error); setStatus('error'); return }
-        setParticipantNo(data.participantNo)
-        addMyCard({ id: data.card.id, civilization: data.card.civilization as Civilization })
+    const token = String(params.token ?? '')
+    clearSession()
+    setToken(token)
+    syncSession()
+      .then(session => {
+        if (!session) { setErrorMsg('この復元用QRは無効です。スタッフにお声がけください。'); setStatus('error'); return }
         setStatus('done')
         setTimeout(() => router.replace('/'), 1500)
       })
       .catch(() => { setErrorMsg('通信エラーが発生しました'); setStatus('error') })
-  }, [params.no, router])
+  }, [params.token, router])
 
   if (status === 'loading') return (
     <div className="min-h-screen bg-gray-900 flex items-center justify-center">
@@ -51,7 +50,7 @@ export default function RestorePage() {
       <div className="text-white text-center">
         <div className="text-5xl mb-4">❌</div>
         <p className="text-red-400 mb-4">{errorMsg}</p>
-        <a href="/" className="text-blue-400 underline text-sm">トップへ戻る</a>
+        <Link href="/" className="text-blue-400 underline text-sm">トップへ戻る</Link>
       </div>
     </div>
   )

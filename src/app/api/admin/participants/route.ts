@@ -1,22 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServiceClient } from '@/lib/supabase-server'
+import { adminDeniedResponse, checkAdminAuth } from '@/lib/admin-auth'
 
-function checkAdminAuth(request: NextRequest): boolean {
-  return request.headers.get('x-admin-password') === process.env.ADMIN_PASSWORD
-}
 
 // GET /api/admin/participants — 参加者一覧＋スタンプ状況
 export async function GET(request: NextRequest) {
-  if (!checkAdminAuth(request)) {
-    return NextResponse.json({ error: '認証失敗' }, { status: 401 })
-  }
-
-  const supabase = getServiceClient()
+  const auth = checkAdminAuth(request)
+  if (auth !== 'ok') return adminDeniedResponse(auth)
+const supabase = getServiceClient()
 
   // 参加者一覧
   const { data: participants, error: pErr } = await supabase
     .from('participants')
-    .select('id, primary_card_id, created_at')
+    .select('id, created_at')
     .order('id', { ascending: true })
 
   if (pErr) {
@@ -33,14 +29,32 @@ export async function GET(request: NextRequest) {
     console.error('participant_stamps fetch error:', sErr)
   }
 
+  // 参加者ごとの所持カード
+  const { data: owned, error: cErr } = await supabase
+    .from('bingo_cards')
+    .select('id, civilization, participant_id')
+    .not('participant_id', 'is', null)
+    .order('id', { ascending: true })
+  if (cErr) {
+    console.error('owned cards fetch error:', cErr)
+  }
+
   type StampRow = { participant_id: number; stamp_ad: boolean; stamp_nd: boolean; stamp_rental: boolean }
-  type ParticipantRow = { id: number; primary_card_id: number; created_at: string }
+  type ParticipantRow = { id: number; created_at: string }
+  type OwnedRow = { id: number; civilization: string; participant_id: number }
   const stampsMap = Object.fromEntries(
     ((stamps ?? []) as StampRow[]).map(s => [s.participant_id, s])
   )
+  const cardsMap = new Map<number, { id: number; civilization: string }[]>()
+  for (const c of (owned ?? []) as OwnedRow[]) {
+    const list = cardsMap.get(c.participant_id) ?? []
+    list.push({ id: c.id, civilization: c.civilization })
+    cardsMap.set(c.participant_id, list)
+  }
 
   const result = ((participants ?? []) as ParticipantRow[]).map(p => ({
     ...p,
+    cards: cardsMap.get(p.id) ?? [],
     participant_stamps: stampsMap[p.id] ?? null,
   }))
 
@@ -51,16 +65,20 @@ export async function GET(request: NextRequest) {
 
 // DELETE /api/admin/participants — 参加者を削除
 export async function DELETE(request: NextRequest) {
-  if (!checkAdminAuth(request)) {
-    return NextResponse.json({ error: '認証失敗' }, { status: 401 })
-  }
-
-  const { participantNo } = await request.json()
+  const auth = checkAdminAuth(request)
+  if (auth !== 'ok') return adminDeniedResponse(auth)
+const { participantNo } = await request.json()
   if (!participantNo) {
     return NextResponse.json({ error: 'participantNo required' }, { status: 400 })
   }
 
   const supabase = getServiceClient()
+
+  // 持っていたカードを未配布に戻す
+  await supabase
+    .from('bingo_cards')
+    .update({ assigned: false, assigned_at: null, participant_id: null })
+    .eq('participant_id', participantNo)
 
   // スタンプレコードを先に削除
   await supabase

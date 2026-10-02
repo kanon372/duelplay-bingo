@@ -1,39 +1,43 @@
--- 新規のSupabaseプロジェクトに丸ごと作るためのスキーマ（現行の最終形）。
--- 既存DBへの変更は supabase/migrations/ の差分を使う。
--- アプリは service role キーでサーバー側からのみDBに触る（RLS有効・公開ロールの権限なし）。
+-- 段階1: 安全性の修正
+--   * 参加者に秘密トークンを導入（参加者番号だけでは本人確認できないため）
+--   * カードの所有者(participant_id)をサーバー側で管理
+--   * カード取得をDB関数 claim_bingo_card に一本化（枚数・スタンプ条件を原子的に検証）
+--   * RLS有効化: anon / authenticated から全テーブル・関数へのアクセスを遮断
+--     （アプリは service role キーを使うサーバー側APIからのみDBに触る）
 
-CREATE TABLE IF NOT EXISTS public.bingo_cards (
-  id             integer PRIMARY KEY,
-  civilization   text    NOT NULL CHECK (civilization IN ('光', '水', '火', '自然', '闇')),
-  cells          text[]  NOT NULL,                       -- 25要素。'FREE' またはカードID文字列
-  assigned       boolean NOT NULL DEFAULT false,
-  assigned_at    timestamptz,
-  participant_id integer                                 -- 所有者（未配布は NULL）
-);
+-- ---------------------------------------------------------------
+-- 1. 参加者: 秘密トークン
+-- ---------------------------------------------------------------
+ALTER TABLE public.participants
+  ADD COLUMN IF NOT EXISTS token uuid NOT NULL DEFAULT gen_random_uuid();
 
-CREATE TABLE IF NOT EXISTS public.participants (
-  id              serial PRIMARY KEY,                    -- 参加者番号（表示用）
-  token           uuid   NOT NULL DEFAULT gen_random_uuid(),  -- 秘密トークン（本人確認用）
-  primary_card_id integer UNIQUE REFERENCES public.bingo_cards (id),  -- 旧仕様の名残（未使用）
-  created_at      timestamptz DEFAULT now()
-);
 CREATE UNIQUE INDEX IF NOT EXISTS participants_token_key ON public.participants (token);
 
-ALTER TABLE public.bingo_cards
-  ADD CONSTRAINT bingo_cards_participant_id_fkey
-  FOREIGN KEY (participant_id) REFERENCES public.participants (id) ON DELETE SET NULL;
+-- 1参加者が複数カードを持つため、primary_card_id は必須ではなくなる
+ALTER TABLE public.participants ALTER COLUMN primary_card_id DROP NOT NULL;
 
-CREATE TABLE IF NOT EXISTS public.participant_stamps (
-  id             serial PRIMARY KEY,
-  participant_id integer NOT NULL UNIQUE REFERENCES public.participants (id),
-  stamp_ad       boolean DEFAULT false,
-  stamp_nd       boolean DEFAULT false,
-  stamp_rental   boolean DEFAULT false,
-  created_at     timestamptz DEFAULT now()
-);
+-- ---------------------------------------------------------------
+-- 2. カード: 所有者
+-- ---------------------------------------------------------------
+ALTER TABLE public.bingo_cards
+  ADD COLUMN IF NOT EXISTS participant_id integer
+  REFERENCES public.participants (id) ON DELETE SET NULL;
 
 CREATE INDEX IF NOT EXISTS idx_bingo_cards_participant ON public.bingo_cards (participant_id);
-CREATE INDEX IF NOT EXISTS idx_bingo_cards_civ_free ON public.bingo_cards (civilization) WHERE participant_id IS NULL;
+
+-- 未配布カードの検索用（文明別）
+DROP INDEX IF EXISTS public.idx_bingo_cards_civ_unassigned;
+DROP INDEX IF EXISTS public.idx_bingo_cards_civ_assigned;
+CREATE INDEX IF NOT EXISTS idx_bingo_cards_civ_free
+  ON public.bingo_cards (civilization) WHERE participant_id IS NULL;
+
+-- ---------------------------------------------------------------
+-- 3. 使われていないテーブル / 旧関数の整理
+-- ---------------------------------------------------------------
+DROP TABLE IF EXISTS public.stamp_cards;
+DROP FUNCTION IF EXISTS public.assign_bingo_card(text);
+DROP FUNCTION IF EXISTS public.unassign_bingo_card(integer);
+DROP FUNCTION IF EXISTS public.reset_all_cards();
 
 -- ---------------------------------------------------------------
 -- 4. カード取得: 枚数・スタンプ条件の検証と配布を1トランザクションで行う

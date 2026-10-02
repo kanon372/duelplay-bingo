@@ -7,7 +7,7 @@ interface CardInfo { id: number; civilization: string; assigned: boolean; assign
 interface ParticipantStamps { stamp_ad: boolean; stamp_nd: boolean; stamp_rental: boolean }
 interface Participant {
   id: number
-  primary_card_id: number
+  cards: { id: number; civilization: string }[]
   created_at: string
   participant_stamps: ParticipantStamps | ParticipantStamps[] | null
 }
@@ -43,6 +43,7 @@ export default function AdminPage() {
   const fetchData = useCallback(async (pw: string) => {
     const res = await fetch('/api/admin/cards', { headers: { 'x-admin-password': pw } })
     if (res.status === 401) { setAuthError('パスワードが違います'); setAuthed(false); return }
+    if (res.status === 429) { setAuthError('試行回数が多すぎます。しばらくしてからやり直してください'); setAuthed(false); return }
     const data = await res.json()
     setSummary(data.summary)
     setCards(data.cards)
@@ -113,10 +114,11 @@ export default function AdminPage() {
     const no = parseInt(restoreNo, 10)
     if (isNaN(no) || no <= 0) { setRestoreError('有効な番号を入力してください'); return }
     setRestoreLoading(true); setRestoreError(''); setRestoreUrl(''); setRestoreQR('')
-    const res = await fetch(`/api/restore?participantNo=${no}`)
+    const res = await fetch(`/api/admin/restore-link?participantNo=${no}`, { headers: { 'x-admin-password': password } })
     setRestoreLoading(false)
     if (!res.ok) { const d = await res.json(); setRestoreError(d.error ?? 'エラーが発生しました'); return }
-    const url = `${window.location.origin}/restore/${no}`
+    const { path } = await res.json()
+    const url = `${window.location.origin}${path}`
     setRestoreUrl(url)
     const QRCode = (await import('qrcode')).default
     const dataUrl = await QRCode.toDataURL(url, { width: 240, margin: 2 })
@@ -144,7 +146,7 @@ export default function AdminPage() {
       return
     }
     const body = cardId ? { cardId } : { resetAll: true }
-    if (!confirm(cardId ? `カード${cardId}を未配布に戻しますか？` : '全カードをリセットしますか？')) return
+    if (!confirm(cardId ? `カード${cardId}を未配布に戻しますか？\n持っている参加者の端末からも消えます。` : '全カードを未配布に戻しますか？\n参加者とスタンプは残りますが、全員のカードが端末から消えます。')) return
     const res = await fetch('/api/admin/reset', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-admin-password': password },
@@ -317,7 +319,11 @@ export default function AdminPage() {
                   <div key={p.id} className="flex items-center justify-between px-3 py-2 border-b border-gray-700 text-sm">
                     <div>
                       <span className="text-white font-bold">#{p.id}</span>
-                      <span className="text-gray-500 text-xs ml-2">カード No.{p.primary_card_id}</span>
+                      <span className="text-gray-500 text-xs ml-2">
+                        {p.cards.length === 0
+                          ? 'カードなし'
+                          : p.cards.map(c => `${c.civilization} No.${c.id}`).join(' / ')}
+                      </span>
                       <div className="flex gap-1 mt-0.5">
                         {(['AD','ND','Rental'] as const).map((label, i) => {
                           const keys = ['stamp_ad','stamp_nd','stamp_rental'] as const
@@ -383,7 +389,8 @@ export default function AdminPage() {
         <section className="space-y-3">
           <button
             onClick={async () => {
-              if (!confirm('スタンプ・参加者データを全削除しますか？\nビンゴカードの配布状況はそのまま残ります。')) return
+              if (!confirm('参加者・スタンプ・カードの配布をすべてリセットしますか？\n（新しいイベントの開始時用）\n全員の端末のカードと参加者番号も無効になります。この操作は元に戻せません。')) return
+              if (prompt('確認のため「リセット」と入力してください') !== 'リセット') return
               const res = await fetch('/api/admin/reset', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'x-admin-password': password },
@@ -394,10 +401,10 @@ export default function AdminPage() {
             }}
             className="w-full py-3 bg-orange-700 text-white rounded font-bold hover:bg-orange-600"
           >
-            🗑️ スタンプ・参加者をリセット
+            🗑️ 参加者・スタンプ・カードをすべてリセット
           </button>
           <button onClick={() => handleReset()} className="w-full py-3 bg-red-700 text-white rounded font-bold hover:bg-red-600">
-            ⚠️ 全カードをリセット（配布状況のみ）
+            ⚠️ 全カードを未配布に戻す（参加者・スタンプは残す）
           </button>
         </section>
       </div>
