@@ -1,17 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServiceClient } from '@/lib/supabase-server'
+import { adminDeniedResponse, checkAdminAuth } from '@/lib/admin-auth'
 
-function checkAdminAuth(request: NextRequest): boolean {
-  return request.headers.get('x-admin-password') === process.env.ADMIN_PASSWORD
-}
 
 // POST /api/admin/stamp — 参加者番号でスタンプ付与・取消
 export async function POST(request: NextRequest) {
-  if (!checkAdminAuth(request)) {
-    return NextResponse.json({ error: '認証失敗' }, { status: 401 })
-  }
-
-  const { participantNo, stamp, value } = await request.json()
+  const auth = checkAdminAuth(request)
+  if (auth !== 'ok') return adminDeniedResponse(auth)
+const { participantNo, stamp, value } = await request.json()
   if (!participantNo || !stamp || typeof value !== 'boolean') {
     return NextResponse.json({ error: 'パラメータ不足' }, { status: 400 })
   }
@@ -23,6 +19,11 @@ export async function POST(request: NextRequest) {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase = getServiceClient() as any
+
+  const { data: participant } = await supabase.from('participants').select('id').eq('id', participantNo).maybeSingle()
+  if (!participant) {
+    return NextResponse.json({ error: `参加者番号 ${participantNo} が見つかりません` }, { status: 404 })
+  }
 
   // upsert で SELECT→INSERT の競合を回避
   const { error } = await supabase
@@ -41,11 +42,9 @@ export async function POST(request: NextRequest) {
 
 // GET /api/admin/stamp?participantNo=X — 参加者番号でスタンプ状況確認
 export async function GET(request: NextRequest) {
-  if (!checkAdminAuth(request)) {
-    return NextResponse.json({ error: '認証失敗' }, { status: 401 })
-  }
-
-  const participantNo = request.nextUrl.searchParams.get('participantNo')
+  const auth = checkAdminAuth(request)
+  if (auth !== 'ok') return adminDeniedResponse(auth)
+const participantNo = request.nextUrl.searchParams.get('participantNo')
   if (!participantNo) return NextResponse.json({ error: 'participantNo required' }, { status: 400 })
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

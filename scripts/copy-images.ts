@@ -2,7 +2,7 @@ import * as fs from 'fs'
 import * as path from 'path'
 
 const SOURCE_DIR = path.resolve(__dirname, '../../sddownload/36弾/36弾')
-const DEST_DIR = path.resolve(__dirname, '../public/cards')
+const DEST_DIR = path.resolve(__dirname, '../assets-src/cards')
 
 function copyImages(dir: string) {
   const entries = fs.readdirSync(dir, { withFileTypes: true })
@@ -22,4 +22,4 @@ function copyImages(dir: string) {
 
 fs.mkdirSync(DEST_DIR, { recursive: true })
 copyImages(SOURCE_DIR)
-console.log('Done! Card images copied to public/cards/')
+console.log('Done! Card images copied to assets-src/cards/ (next: npm run make-thumbs)')

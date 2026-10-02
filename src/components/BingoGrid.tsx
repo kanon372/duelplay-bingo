@@ -1,52 +1,64 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useCallback, useMemo, useSyncExternalStore } from 'react'
 import BingoCell from './BingoCell'
-import { checkBingo } from '@/lib/bingo'
+import { completedLinesByDraws, reachLineCount } from '@/lib/bingo'
 import { getStamps, toggleStamp } from '@/lib/localStorage'
 import type { BingoCard } from '@/types'
 
 interface BingoGridProps {
   card: BingoCard
+  /** ゲームで出たカードの番号 */
+  drawn: ReadonlySet<string>
+  /** 直前の更新で新しく出たカード（光らせる演出用） */
+  fresh?: ReadonlySet<string>
   accentColor?: string
 }
 
-export default function BingoGrid({ card, accentColor = '#fbbf24' }: BingoGridProps) {
-  const [stamped, setStamped] = useState<Set<number>>(new Set())
-  const [bingoLines, setBingoLines] = useState<number[][]>([])
-  const [showBingo, setShowBingo] = useState(false)
+const OPENED_EVENT = 'bingo-opened'
 
-  useEffect(() => {
-    const saved = getStamps(card.id)
-    setStamped(saved)
-    setBingoLines(checkBingo(saved).lines)
-  }, [card.id])
+/** 端末に保存した「開けたマス」を読む（サーバー描画時は空。ビンゴ判定には使わない演出用の状態） */
+function useOpenedCells(cardId: number): Set<number> {
+  const key = `bingo_stamps_${cardId}`
+  const subscribe = useCallback((cb: () => void) => {
+    window.addEventListener('storage', cb)
+    window.addEventListener(OPENED_EVENT, cb)
+    return () => {
+      window.removeEventListener('storage', cb)
+      window.removeEventListener(OPENED_EVENT, cb)
+    }
+  }, [])
+  const raw = useSyncExternalStore(
+    subscribe,
+    () => { try { return localStorage.getItem(key) ?? '[]' } catch { return '[]' } },
+    () => '[]'
+  )
+  return useMemo(() => {
+    try { return new Set<number>(JSON.parse(raw)) } catch { return getStamps(cardId) }
+  }, [raw, cardId])
+}
+
+export default function BingoGrid({ card, drawn, fresh, accentColor = '#fbbf24' }: BingoGridProps) {
+  const opened = useOpenedCells(card.id)
+
+  // 出たカードからそろったライン・リーチ（サーバーの申告判定と同じルール）
+  const lines = useMemo(() => completedLinesByDraws(card.cells, drawn), [card.cells, drawn])
+  const reach = useMemo(() => reachLineCount(card.cells, drawn), [card.cells, drawn])
+  const highlighted = useMemo(() => new Set(lines.flat()), [lines])
 
   const handleCellClick = useCallback((index: number) => {
-    const newStamped = toggleStamp(card.id, index)
-    setStamped(new Set(newStamped))
-    const result = checkBingo(newStamped)
-    const prevLineCount = bingoLines.length
-    setBingoLines(result.lines)
-    if (result.lines.length > prevLineCount) {
-      setShowBingo(true)
-      setTimeout(() => setShowBingo(false), 2500)
-    }
-  }, [card.id, bingoLines.length])
-
-  const highlightedCells = new Set(bingoLines.flat())
+    toggleStamp(card.id, index)
+    window.dispatchEvent(new Event(OPENED_EVENT))
+  }, [card.id])
 
   return (
     <div className="relative w-full h-full" style={{ overflow: 'visible' }}>
-      {/* BINGO! フラッシュ */}
-      {showBingo && (
-        <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
+      {/* BINGO! フラッシュ（ライン数が増えるたびに key で再生され、自然に消える） */}
+      {lines.length > 0 && (
+        <div key={lines.length} className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none bingo-flash">
           <div
-            className="text-4xl font-black animate-bounce drop-shadow-2xl"
-            style={{
-              color: '#ffd700',
-              textShadow: '0 0 20px #ffd700, 0 2px 4px rgba(0,0,0,0.9)',
-            }}
+            className="text-4xl font-black drop-shadow-2xl"
+            style={{ color: '#ffd700', textShadow: '0 0 20px #ffd700, 0 2px 4px rgba(0,0,0,0.9)' }}
           >
             BINGO!
           </div>
@@ -90,8 +102,10 @@ export default function BingoGrid({ card, accentColor = '#fbbf24' }: BingoGridPr
             >
               <BingoCell
                 cellValue={cellValue}
-                isStamped={index === 12 || stamped.has(index)}
-                isHighlighted={highlightedCells.has(index)}
+                isStamped={opened.has(index)}
+                isDrawn={drawn.has(cellValue)}
+                isNewDraw={fresh?.has(cellValue) ?? false}
+                isHighlighted={highlighted.has(index)}
                 accentColor={accentColor}
                 colIndex={c}
                 onClick={() => handleCellClick(index)}
@@ -101,8 +115,8 @@ export default function BingoGrid({ card, accentColor = '#fbbf24' }: BingoGridPr
         })}
       </div>
 
-      {/* ビンゴライン数 */}
-      {bingoLines.length > 0 && (
+      {/* ライン数 / リーチ */}
+      {(lines.length > 0 || reach > 0) && (
         <div
           className="absolute bottom-0 left-0 right-0 text-center font-black text-sm py-0.5"
           style={{
@@ -112,7 +126,7 @@ export default function BingoGrid({ card, accentColor = '#fbbf24' }: BingoGridPr
             zIndex: 20,
           }}
         >
-          🎉 {bingoLines.length}ライン BINGO！
+          {lines.length > 0 ? `🎉 ${lines.length}ライン BINGO！` : `✨ リーチ ${reach}ライン`}
         </div>
       )}
     </div>

@@ -1,36 +1,60 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# デュエプレ ビンゴ大会アプリ
 
-## Getting Started
+イベント会場でお客さんにビンゴカードを配り、スタンプ（サイドイベント）で進行を管理する Next.js + Supabase のアプリ。
 
-First, run the development server:
+- お客さんは文明ごとのQR（`/join/<イベントコード>/<文明>`）を読み取ってカードを受け取る（1人3枚まで）
+- 2枚目はスタンプ2個、3枚目はスタンプ3個が必要（スタッフが管理画面 `/admin` で付与）
+- 参加者の本人確認は端末に保存した秘密トークンで行う。カードの所有・枚数・スタンプ条件は全てサーバー側（DB関数 `claim_bingo_card`）で検証する
+- ゲーム内のパックから「出たカード」を運営が入力すると、全員のカードの該当マスが光る。ラインがそろったお客さんが「ビンゴ申告」を押すと、サーバーがそろっているかを自動判定し、**申告した順**に順位がつく（目視の確認は不要）
+
+> このリポジトリの Next.js は一般的なものと仕様が異なる部分がある（`AGENTS.md` 参照）。実装前に `node_modules/next/dist/docs/` を読むこと。
+
+## セットアップ
 
 ```bash
+npm ci
+cp .env.example .env.local   # 値を設定
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 環境変数
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| 名前 | 用途 |
+|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | SupabaseのURL |
+| `SUPABASE_SERVICE_ROLE_KEY` | サーバー側APIがDBに触るためのキー（**公開しない**） |
+| `ADMIN_PASSWORD` | 管理画面のパスワード |
+| `EVENT_CODE` | QRに含まれるイベントコード。変えると古いQRは使えなくなる（旧名 `NEXT_PUBLIC_EVENT_CODE` でも可） |
+| `SITE_URL` | QR生成用のサイトURL（`npm run generate-qr`） |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+`NEXT_PUBLIC_SUPABASE_ANON_KEY` は不要になった（DBは公開ロールから一切アクセスできない）。
 
-## Learn More
+### データベース
 
-To learn more about Next.js, take a look at the following resources:
+- 新規プロジェクト: `supabase/schema.sql` を実行
+- 既存プロジェクト: `supabase/migrations/` の未適用の差分を順に実行
+- カードデータ（`bingo_cards`）の投入は `npm run seed-db`
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### 画像
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+`public/` には軽量化したWebPだけを置き、元画像は `assets-src/` にある。カード画像を追加・差し替えたら `npm run make-thumbs` を実行する（元画像のまま配信すると1枚のカード表示で約58MBの通信になる）。
 
-## Deploy on Vercel
+## 当日の運用（運営コンソール `/admin/game`）
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+1. `/admin` にログイン →「🎮 ゲーム運営」を開く（パスワードはタブを閉じるまで保持される）
+2. **景品の人数**を設定（先方の指示に合わせる。当日変更も可）。「1人1回まで」は通常オンのまま
+3. 演者さんがパックを開き、**出たカードをタップして入力**する（間違えたら再タップで取消、「↩ 直前を取消」も使える）。同じカードを何度タップしても1件
+4. お客さんがビンゴ申告すると、画面上部に**受付順**で並び、音と点滅で知らせる。上から順に **承認** → 景品を渡す（却下すると後続が繰り上がる）
+5. 出たカードの入力を取り消して不成立になった申告には警告が出て、承認できない。景品の人数に達したら承認できない
+6. 次のラウンドに移るときは「ゲームをリセット」（出たカードと申告を全て削除）。受付を止めたいときは「受付終了」
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+お客さんのカードは3秒おきに自動で更新される（会場の回線が不安定でも、通信エラー時は間隔を延ばして再試行する）。
+
+## スクリプト
+
+| コマンド | 内容 |
+|---|---|
+| `npm run dev` / `build` / `start` | 開発・ビルド・本番起動 |
+| `npm run typecheck` / `lint` / `test:run` | 型チェック・ESLint・テスト |
+| `npm run make-thumbs` | 配信用画像を生成 |
+| `npm run generate-qr` | 文明ごとのQRを `out/qr-codes.html` に生成 |
