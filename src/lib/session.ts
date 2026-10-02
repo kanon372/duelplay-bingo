@@ -9,10 +9,26 @@ export interface SessionData {
   stamps: StampStatus
 }
 
+export type ClaimStatus = 'pending' | 'approved' | 'rejected'
+
+export interface MyClaim {
+  id: number
+  card_id: number
+  lines: number
+  status: ClaimStatus
+  /** 却下を除いた現在の受付順位（1始まり） */
+  rank: number
+  claimed_at: string
+}
+
+export interface GameInfo { status: 'open' | 'closed'; prizeLimit: number }
+
 export interface SessionWithCells {
   participantNo: number
   cards: BingoCard[]
   stamps: StampStatus
+  claims: MyClaim[]
+  game: GameInfo
 }
 
 async function postMe(token: string, withCells: boolean) {
@@ -51,6 +67,7 @@ export async function fetchMyCardsWithCells(): Promise<SessionWithCells | null> 
   if (res.status === 401) { clearSession(); return null }
   if (!res.ok) throw new Error('fetch failed')
   const data: SessionWithCells = await res.json()
+  data.claims = data.claims ?? []
   setParticipantNo(data.participantNo)
   setMyCards(data.cards.map(c => ({ id: c.id, civilization: c.civilization })))
   return data

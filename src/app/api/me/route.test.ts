@@ -43,7 +43,33 @@ describe('POST /api/me', () => {
       participantNo: 5,
       cards: [{ id: 10, civilization: '光' }],
       stamps: { stamp_ad: false, stamp_nd: false, stamp_rental: false },
+      claims: [],
+      game: { status: 'open', prizeLimit: 1 },
     })
     expect(res.headers.get('cache-control')).toContain('no-store')
+  })
+})
+
+describe('POST /api/me — 申告の状況', () => {
+  it('自分の申告と、却下を除いた現在の順位を返す', async () => {
+    fake = makeFakeSupabase({
+      tables: {
+        participants: { data: { id: 5 } },
+        bingo_cards: { data: [] },
+        bingo_claims: {
+          // 自分の申告も全体の申告も同じデータを返す簡易モック（seq 2 の自分の前に、却下された1番がいる）
+          data: [
+            { id: 1, card_id: 8, lines: 1, seq: 1, status: 'rejected', claimed_at: 't1' },
+            { id: 2, card_id: 10, lines: 2, seq: 2, status: 'pending', claimed_at: 't2' },
+          ],
+        },
+        game_state: { data: { status: 'open', prize_limit: 3, one_prize_per_participant: true } },
+      },
+    })
+    const body = await (await call({ token: TOKEN })).json()
+    expect(body.game).toEqual({ status: 'open', prizeLimit: 3 })
+    const mine = body.claims.find((c: { id: number }) => c.id === 2)
+    expect(mine.rank).toBe(1) // 却下された1番は数えないので繰り上がって1位
+    expect(body.claims.find((c: { id: number }) => c.id === 1).status).toBe('rejected')
   })
 })

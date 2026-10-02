@@ -34,7 +34,15 @@ const GRID_STYLE: Record<'left' | 'right', React.CSSProperties> = {
 }
 
 /** カード1枚分（背景テンプレート画像 + 5×5グリッドのオーバーレイ）。画像アスペクト比 3035:2150 を維持 */
-export default function BingoCardView({ card }: { card: BingoCard }) {
+export default function BingoCardView({
+  card,
+  drawn,
+  fresh,
+}: {
+  card: BingoCard
+  drawn: ReadonlySet<string>
+  fresh?: ReadonlySet<string>
+}) {
   const config = CIV_CONFIG[card.civilization] ?? CIV_CONFIG['光']
   return (
     <div className="w-full relative" style={{ aspectRatio: '3035/2150', overflow: 'hidden' }}>
@@ -46,7 +54,7 @@ export default function BingoCardView({ card }: { card: BingoCard }) {
         style={{ objectFit: 'fill' }}
       />
       <div style={GRID_STYLE[config.layout]}>
-        <BingoGrid card={card} accentColor={config.accent} />
+        <BingoGrid card={card} drawn={drawn} fresh={fresh} accentColor={config.accent} />
       </div>
     </div>
   )

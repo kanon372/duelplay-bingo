@@ -2,7 +2,7 @@
  * APIルートのテスト用の最小限の Supabase クライアントのモック。
  * `.from(table).select().eq().maybeSingle()` などのチェーンを、テーブル名ごとに用意した結果で返す。
  */
-export interface FakeResult { data: unknown; error?: unknown }
+export interface FakeResult { data: unknown; error?: unknown; count?: number }
 
 export function makeFakeSupabase(opts: {
   tables?: Record<string, FakeResult | ((op: string) => FakeResult)>

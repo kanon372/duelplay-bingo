@@ -1,25 +1,17 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import BingoCardView from '@/components/BingoCardView'
-import { fetchMyCardsWithCells } from '@/lib/session'
-import type { BingoCard } from '@/types'
+import ClaimPanel from '@/components/ClaimPanel'
+import RecentDraws from '@/components/RecentDraws'
+import { useDraws } from '@/lib/useDraws'
+import { useMyCards } from '@/lib/useMyCards'
 
 export default function AllCardsPage() {
-  const [cards, setCards] = useState<BingoCard[]>([])
-  const [loading, setLoading] = useState(true)
+  const { session, loading, refresh } = useMyCards()
+  const draws = useDraws()
   const router = useRouter()
-
-  useEffect(() => {
-    let active = true
-    // 自分のカードだけをサーバーから取得（取得順 = 受け取った順）
-    fetchMyCardsWithCells()
-      .then(session => { if (active) setCards(session?.cards ?? []) })
-      .catch(() => {})
-      .finally(() => { if (active) setLoading(false) })
-    return () => { active = false }
-  }, [])
+  const cards = session?.cards ?? []
 
   if (loading) {
     return (
@@ -29,7 +21,7 @@ export default function AllCardsPage() {
     )
   }
 
-  if (cards.length === 0) {
+  if (!session || cards.length === 0) {
     return (
       <main className="min-h-screen bg-gray-900 flex flex-col items-center justify-center gap-4 p-4">
         <p className="text-gray-400">カードがありません</p>
@@ -51,6 +43,10 @@ export default function AllCardsPage() {
         <span className="text-gray-500 text-xs">{cards.length}枚</span>
       </div>
 
+      <div className="px-4 pt-3">
+        <RecentDraws order={draws.order} stale={draws.stale} />
+      </div>
+
       {/* カード一覧 */}
       <div className="flex flex-col">
         {cards.map((card, i) => (
@@ -68,7 +64,18 @@ export default function AllCardsPage() {
             </div>
 
             {/* ビンゴカード */}
-            <BingoCardView card={card} />
+            <BingoCardView card={card} drawn={draws.drawn} fresh={draws.fresh} />
+
+            <div className="px-4 pt-2">
+              <ClaimPanel
+                card={card}
+                drawn={draws.drawn}
+                gameStatus={draws.status}
+                claims={session.claims}
+                participantNo={session.participantNo}
+                onChanged={refresh}
+              />
+            </div>
 
             {/* カード間区切り */}
             {i < cards.length - 1 && <div className="h-px bg-gray-800 mx-4 mt-3" />}

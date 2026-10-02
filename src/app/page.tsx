@@ -2,9 +2,9 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
-import { getMyCards, canAddCard, getParticipantNo } from '@/lib/localStorage'
+import { canAddCard } from '@/lib/localStorage'
+import { useLocalSession } from '@/lib/useLocalSession'
 import { syncSession, type StampStatus } from '@/lib/session'
-import type { MyCard } from '@/types'
 import dynamic from 'next/dynamic'
 import StampCard from '@/components/StampCard'
 
@@ -22,31 +22,24 @@ const CIV_COLOR: Record<string, string> = {
 const STAMP_REQUIRED = [0, 2, 3] // 1枚目:0個, 2枚目:2個, 3枚目:3個
 
 export default function TopPage() {
-  const [cards, setCards] = useState<MyCard[]>([])
+  // 端末に保存した内容を先に表示し、サーバーの内容で更新する（保存が変わると自動で再描画）
+  const { cards, participantNo, mounted } = useLocalSession()
   const [showScanner, setShowScanner] = useState(false)
-  const [mounted, setMounted] = useState(false)
-  const [participantNo, setParticipantNoState] = useState<number | null>(null)
   const [stampStatus, setStampStatus] = useState<StampStatus | null>(null)
 
   const refresh = useCallback(async () => {
-    // サーバーが正。通信に失敗したときは端末のキャッシュ表示のまま
+    // サーバーが正。トークンが無効なら端末の保存が消え、画面も自動で初期状態になる。通信に失敗したときは例外
     const session = await syncSession()
-    if (!session) {
-      setCards([]); setParticipantNoState(null); setStampStatus(null)
-      return
-    }
-    setCards(session.cards)
-    setParticipantNoState(session.participantNo)
-    setStampStatus(session.stamps)
+    setStampStatus(session ? session.stamps : null)
   }, [])
 
   useEffect(() => {
-    // 端末のキャッシュを先に表示してから、サーバーの内容で更新する
-    setCards(getMyCards())
-    setParticipantNoState(getParticipantNo())
-    setMounted(true)
-    refresh().catch(() => {})
-  }, [refresh])
+    let alive = true
+    syncSession()
+      .then(session => { if (alive) setStampStatus(session ? session.stamps : null) })
+      .catch(() => {})
+    return () => { alive = false }
+  }, [])
 
   const canAdd = mounted ? canAddCard() : true
 
@@ -150,8 +143,6 @@ export default function TopPage() {
       {showScanner && (
         <QRScanner onClose={() => {
           setShowScanner(false)
-          setCards(getMyCards())
-          setParticipantNoState(getParticipantNo())
           refresh().catch(() => {})
         }} />
       )}

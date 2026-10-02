@@ -1,6 +1,8 @@
 'use client'
 
+import Link from 'next/link'
 import { useState, useCallback } from 'react'
+import { setAdminPassword } from '@/lib/adminSession'
 
 interface CardSummary { civilization: string; total: number; assigned: number; remaining: number }
 interface CardInfo { id: number; civilization: string; assigned: boolean; assigned_at: string | null }
@@ -30,7 +32,6 @@ export default function AdminPage() {
 
   // 参加者一覧
   const [participants, setParticipants] = useState<Participant[]>([])
-  const [participantsLoading, setParticipantsLoading] = useState(false)
   const [showParticipants, setShowParticipants] = useState(false)
 
   // 番号復元
@@ -48,6 +49,7 @@ export default function AdminPage() {
     setSummary(data.summary)
     setCards(data.cards)
     setAuthed(true)
+    setAdminPassword(pw)
     setLastUpdated(new Date())
     // 参加者一覧も同時に更新
     const pRes = await fetch('/api/admin/participants', { headers: { 'x-admin-password': pw } })
@@ -91,23 +93,6 @@ export default function AdminPage() {
       setStampMessage('エラー: ' + data.error)
     }
     setStampLoading(false)
-  }
-
-  const fetchParticipants = async () => {
-    setParticipantsLoading(true)
-    try {
-      const res = await fetch('/api/admin/participants', { headers: { 'x-admin-password': password } })
-      const data = await res.json()
-      if (data.error) {
-        alert('参加者取得エラー: ' + data.error)
-        setParticipantsLoading(false)
-        return
-      }
-      setParticipants(data.participants ?? [])
-    } catch (e) {
-      alert('参加者取得失敗: ' + e)
-    }
-    setParticipantsLoading(false)
   }
 
   const handleRestore = async () => {
@@ -177,6 +162,9 @@ export default function AdminPage() {
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-white text-2xl font-bold">管理画面</h1>
           <div className="flex items-center gap-3">
+            <Link href="/admin/game" className="px-3 py-1 bg-yellow-600 text-white text-xs rounded hover:bg-yellow-500 font-bold">
+              🎮 ゲーム運営
+            </Link>
             {lastUpdated && (
               <span className="text-gray-500 text-xs">
                 {lastUpdated.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit', second: '2-digit' })} 更新
@@ -305,7 +293,7 @@ export default function AdminPage() {
               <div className="px-3 py-2 border-b border-gray-700">
                 <span className="text-gray-400 text-xs">合計 {participants.length} 人</span>
               </div>
-              {participants.length === 0 && !participantsLoading && (
+              {participants.length === 0 && (
                 <p className="text-gray-500 text-sm p-3">参加者はまだいません</p>
               )}
               {participants.map(p => {
