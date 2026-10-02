@@ -50,7 +50,7 @@ export default function BingoCell({
           }}
         >
           <Image
-            src={`/cards/${cellValue}.png`}
+            src={`/cards/${cellValue}.webp`}
             alt={cellValue}
             fill
             className="object-contain"
